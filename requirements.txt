@@ -1,6 +1,3 @@
 numpy
 pytest
-json
-re
 pandas
-typing
