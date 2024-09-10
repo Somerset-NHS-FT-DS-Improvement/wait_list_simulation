@@ -1,9 +1,9 @@
 import json
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
-from pathlib import Path
 
 from simulation.patient_management.priority import PriorityCalculator
 
@@ -18,9 +18,8 @@ def df():
 
 
 @pytest.fixture()
-def pc(df):
+def pc():
     return PriorityCalculator(
-        df,
         [
             "A&E patients",
             "inpatients",
@@ -34,17 +33,20 @@ def pc(df):
 
 @pytest.fixture()
 def reg_map():
-    config_file = Path(__file__).resolve().parent.parent.parent.parent / 'simulation/config/min_max_wait_mapping.json'
+    config_file = (
+        Path(__file__).resolve().parent.parent.parent.parent
+        / "simulation/config/min_max_wait_mapping.json"
+    )
     with open(config_file, "r") as fin:
         return json.load(fin)
 
 
-def test_init_assertion(df):
+def test_sorted_indices_assertion(df, pc):
     """Test to ensure that PriorityCalculator raises an AssertionError if required columns are missing."""
     incomplete_df = df.drop(columns=["days waited"])
 
     with pytest.raises(AssertionError):
-        PriorityCalculator(incomplete_df, [])
+        pc.calculate_sorted_indices(incomplete_df)
 
 
 def test_apply_regex_map_raise(pc, reg_map):
@@ -62,28 +64,27 @@ def test_apply_regex_map(pc, reg_map):
 
 def test_calculate_min_and_max_wait_times(df, pc):
     """Test to check that 2 new columns are set up: MinWaitTime, MaxWaitTime"""
-    pc.df = df
-    pc.calculate_min_and_max_wait_times()
+    min_and_max_wait_times = pc.calculate_min_and_max_wait_times(df)
 
-    assert (pc.min_max_wait_times == np.array([[7, 14], [21, 126]])).all()
+    assert (min_and_max_wait_times == np.array([[7, 14], [21, 126]])).all()
 
 
-def test_calculate_wait_list_order(pc):
+def test_calculate_sorted_indices(pc, df):
     """Test to check the priority orders for various scenarios."""
     pc.priority_order = ["inpatients", "Days waited"]
-    assert pc.calculate_wait_list_order().tolist() == [
+    assert pc.calculate_sorted_indices(df).tolist() == [
         0,
         1,
     ]
 
     pc.priority_order = ["Days waited", "inpatients"]
-    assert pc.calculate_wait_list_order().tolist() == [
+    assert pc.calculate_sorted_indices(df).tolist() == [
         1,
         0,
     ]
 
     pc.priority_order = ["Under maximum wait time"]
-    assert pc.calculate_wait_list_order().tolist() == [0, 1]
+    assert pc.calculate_sorted_indices(df).tolist() == [0, 1]
 
 
 if __name__ == "__main__":
