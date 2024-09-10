@@ -1,11 +1,10 @@
 import json
 import re
+from pathlib import Path
 from typing import Dict, List
 
 import numpy as np
 import pandas as pd
-
-from pathlib import Path
 
 
 class PriorityCalculator:
@@ -17,19 +16,20 @@ class PriorityCalculator:
         priority_order (List[str]): A list of column names in the order of priority for sorting.
         """
         self.priority_order = priority_order
-        self.df = None
-        self.min_max_wait_times = None
-        self.sorted_indices = None
 
-    def calculate_sorted_indices(self, df: pd.DataFrame) -> None:
+    def calculate_sorted_indices(self, df: pd.DataFrame) -> np.ndarray:
         """
         Validate the DataFrame and calculate sorted indices based on priority.
 
-        This function validates that the required columns 'priority', 'setting', and 'days waited' are present in the
-        DataFrame. It then calculates the min and max wait times and sorts the DataFrame based on the priority order.
+        This function checks that the required columns 'priority', 'setting', and 'days waited'
+        are present in the DataFrame. It then calculates the minimum and maximum wait times and
+        sorts the DataFrame based on the priority order.
 
         Parameters:
         df (pd.DataFrame): The input DataFrame to be validated and processed.
+
+        Returns:
+        np.ndarray: An array of sorted indices based on the priority order.
 
         Raises:
         AssertionError: If the required columns 'priority', 'setting', and 'days waited' are not present in the DataFrame.
@@ -39,18 +39,22 @@ class PriorityCalculator:
             == len(df.columns) - 3
         ), f"The columns priority, setting and days waited are required and not found in {df.columns}"
 
-        self.df = df
+        min_max_wait_times = self.calculate_min_and_max_wait_times(df)
 
-        self.min_max_wait_times = self.calculate_min_and_max_wait_times()
+        priority_mapping = self.__get_priority_mapping(df, min_max_wait_times)
+        sorted_indices = self.calculate_wait_list_order(priority_mapping)
 
-        self.sorted_indices = self.calculate_wait_list_order()
+        return sorted_indices
 
-    def calculate_min_and_max_wait_times(self) -> np.ndarray:
+    def calculate_min_and_max_wait_times(self, df: pd.DataFrame) -> np.ndarray:
         """
         Calculate the minimum and maximum wait times for each entry in the DataFrame based on priority.
 
         This function applies a regex mapping to determine the minimum and maximum wait times for each entry
         in the 'priority' column of the DataFrame and assigns these times to a numpy array.
+
+        Parameters:
+        df (pd.DataFrame): The input DataFrame containing the 'priority' column.
 
         Returns:
         np.ndarray: A 2D numpy array where each row contains the [MinWaitTime, MaxWaitTime] for the corresponding entry.
@@ -60,7 +64,7 @@ class PriorityCalculator:
         min_max_wait_times = np.array(
             [
                 *zip(
-                    *self.df["priority"].apply(
+                    *df["priority"].apply(
                         self.apply_regex_map,
                         regex_mapping=regex_mapping_min_max_wait,
                         default_value=[21, 126],
@@ -78,8 +82,12 @@ class PriorityCalculator:
         Returns:
         Dict[str, List[int]]: A dictionary where keys are regex patterns and values are lists of min and max wait times.
         """
-        config_file = Path(__file__).resolve().parent.parent / 'config' / 'min_max_wait_mapping.json'
-        with open(config_file, 'r') as fin:
+        config_file = (
+            Path(__file__).resolve().parent.parent
+            / "config"
+            / "min_max_wait_mapping.json"
+        )
+        with open(config_file, "r") as fin:
             return json.load(fin)
 
     def apply_regex_map(
@@ -110,38 +118,46 @@ class PriorityCalculator:
                 return wait_times
         raise ValueError(f"No match found for {val}")
 
-    def calculate_wait_list_order(self) -> np.ndarray:
+    def calculate_wait_list_order(
+        self, priority_mapping: Dict[str, np.ndarray]
+    ) -> np.ndarray:
         """
         Calculate the order of the waitlist based on the given priority order.
 
         This function applies lexicographical sorting based on the provided priority order,
         where the final sorting criterion is applied first.
 
+        Parameters:
+        priority_mapping (Dict[str, np.ndarray]): A dictionary where keys are priority criteria and values are arrays used for sorting.
+
         Returns:
         np.ndarray: An array of sorted indices based on the priority order.
         """
-        priority_mapping = self.__get_priority_mapping()
-
         return np.lexsort(
             [priority_mapping[priority] for priority in self.priority_order[::-1]]
         )  # reverse the order so that the final sort is the last one applied
 
-    def __get_priority_mapping(self) -> Dict[str, np.ndarray]:
+    @staticmethod
+    def __get_priority_mapping(
+        df: pd.DataFrame, min_max_wait_times: np.ndarray
+    ) -> Dict[str, np.ndarray]:
         """
         Create a priority mapping for sorting based on specific conditions.
+
+        Parameters:
+        df (pd.DataFrame): The input DataFrame containing the necessary columns for priority calculation.
+        min_max_wait_times (np.ndarray): A 2D numpy array where each row contains the [MinWaitTime, MaxWaitTime] for each entry.
 
         Returns:
         Dict[str, np.ndarray]: A dictionary where keys are priority criteria and values are arrays used for sorting.
         """
         return {
-            "A&E patients": ~(self.df["setting"] == "A&E Patient"),
-            "inpatients": ~(self.df["setting"] == "Inpatient"),
-            "Breach": -(self.df["days waited"] - self.min_max_wait_times[:, 1]),
-            "Days waited": -self.min_max_wait_times[:, 1],
+            "A&E patients": ~(df["setting"] == "A&E Patient"),
+            "inpatients": ~(df["setting"] == "Inpatient"),
+            "Breach": -(df["days waited"] - min_max_wait_times[:, 1]),
+            "Days waited": -min_max_wait_times[:, 1],
             "Over minimum wait time": ~(
-                self.df["days waited"] > self.min_max_wait_times[:, 0]
+                df["days waited"] > min_max_wait_times[:, 0]
             ),  # The inversion here because False will be sorted before True (0 comes before 1)
-            "Under maximum wait time": ~(
-                self.df["days waited"] > self.min_max_wait_times[:, 1]
-            ),
+            "Under maximum wait time": ~(df["days waited"] > min_max_wait_times[:, 1]),
         }
