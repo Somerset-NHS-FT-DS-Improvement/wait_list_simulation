@@ -3,3 +3,4 @@ pytest
 pandas
 scipy
 networkx
+sqlalchemy
