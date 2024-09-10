@@ -9,23 +9,17 @@ from pathlib import Path
 
 
 class PriorityCalculator:
-    def __init__(self, df: pd.DataFrame, priority_order: List[str]):
+    def __init__(self, priority_order: List[str]):
         """
-        Initialise the PriorityCalculator with a DataFrame and a priority order.
+        Initialise the PriorityCalculator with a priority order.
 
         Parameters:
-        df (pd.DataFrame): The input data frame containing the columns 'priority', 'setting', and 'days waited'.
         priority_order (List[str]): A list of column names in the order of priority for sorting.
-
-        Raises:
-        AssertionError: If the required columns 'priority', 'setting', and 'days waited' are not present in the DataFrame.
         """
         self.priority_order = priority_order
         self.df = None
         self.min_max_wait_times = None
         self.sorted_indices = None
-
-        self.calculate_sorted_indices(df)
 
     def calculate_sorted_indices(self, df: pd.DataFrame) -> None:
         """
