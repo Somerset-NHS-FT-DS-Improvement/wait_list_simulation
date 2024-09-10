@@ -1,13 +1,14 @@
 from .simulation_components import PatientGenerator, Capacity, generate_simulation_graph, get_appointment_duration
 from .patient_management.priority import PriorityCalculator
 
-import sfttoolbox
-
 import numpy as np
 
 
 def parameterise_simulation(initial_waitlist, new_patient_function, resource_matching_function, priority_order,
                             dna_rate, cancellation_rate, emergency_rate, fu_rate, length_of_simulation, seed=None):
+    # TODO: Fix this hack... make sfttoolbox available outside of org?
+    import sfttoolbox
+
     # TODO: take in seeds for DNA, cancellations
     # TODO: take in emergency rate and seeds
     # TODO: take in FU rate and seeds

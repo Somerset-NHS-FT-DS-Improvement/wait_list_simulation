@@ -1,5 +1,4 @@
 import pandas as pd
-import sfttoolbox
 
 import networkx as nx
 
