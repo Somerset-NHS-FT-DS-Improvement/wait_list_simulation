@@ -4,3 +4,6 @@ pandas
 scipy
 networkx
 sqlalchemy
+holidays
+sktime
+collections
