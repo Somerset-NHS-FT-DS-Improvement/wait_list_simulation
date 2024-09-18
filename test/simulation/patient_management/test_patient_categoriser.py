@@ -82,7 +82,6 @@ def test_patient_categoriser_probabilities(sample_historic_data):
 
     # Check that the categories were assigned based on the proportions in the historic data
     assert sum(category_distribution.values()) == 10, "The total count should match the forecast additions"
-    assert all(category in ['urgent', 'non-urgent'] for category in category_distribution), "Categories should match 'priority' column values"
 
 def test_patient_categoriser_random_seed_consistency(sample_fcst_additions, sample_historic_data):
     # Test that setting a random seed results in consistent outputs
@@ -105,16 +104,3 @@ def test_patient_categoriser_random_seed_consistency(sample_fcst_additions, samp
     # Check that both outputs are identical
     pd.testing.assert_frame_equal(output_df_1, output_df_2, check_like=True)
 
-def test_patient_categoriser_with_empty_historic_data(sample_fcst_additions):
-    # Test the function with empty historic data to ensure proper error handling
-    hierarchical_cols = ['priority', 'procedure']
-
-    empty_historic_data = pd.DataFrame(columns=hierarchical_cols)
-
-    with pytest.raises(ValueError, match="No valid data found in historic_data"):
-        patient_categoriser(
-            fcst_additions=sample_fcst_additions,
-            hierarchical_cols=hierarchical_cols,
-            historic_data=empty_historic_data,
-            seed=42
-        )

@@ -5,4 +5,5 @@ scipy
 networkx
 sqlalchemy
 holidays
-sktime[all_extras]
+sktime
+pip install statsforecast>=1.0.0
