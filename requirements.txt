@@ -6,4 +6,4 @@ networkx
 sqlalchemy
 holidays
 sktime
-pip install statsforecast>=1.0.0
+statsforecast>=1.0.0
