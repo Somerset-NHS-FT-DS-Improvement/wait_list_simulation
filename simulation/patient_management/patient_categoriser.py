@@ -1,10 +1,10 @@
-import pandas as pd
-import numpy as np
 from collections import Counter
+
+import numpy as np
+import pandas as pd
 
 
 def patient_categoriser(fcst_additions, hierarchical_cols, historic_data, seed=None):
-
     """
     Place patients in categories based on historic proportions.
 
@@ -19,26 +19,26 @@ def patient_categoriser(fcst_additions, hierarchical_cols, historic_data, seed=N
 
     np.random.seed(seed)
 
-    cleaned_data = historic_data.dropna(subset=hierarchical_cols, how='any')
+    cleaned_data = historic_data.dropna(subset=hierarchical_cols, how="any")
 
     grouped = cleaned_data.groupby(by=hierarchical_cols).size()
     total_count = len(cleaned_data)
     probabilities = grouped / total_count
 
-    probabilities_df = pd.DataFrame(probabilities, columns=['proba']).reset_index()
+    probabilities_df = pd.DataFrame(probabilities, columns=["proba"]).reset_index()
 
-    categoriser_list=[]
+    categoriser_list = []
     for f in fcst_additions.values:
 
-        prob_col = probabilities_df.groupby(by = hierarchical_cols).sum(numeric_only=1)['proba']
-        forecast_count = np.random.choice(prob_col.index,
-                                          size=f,
-                                          p=prob_col)
+        prob_col = probabilities_df.groupby(by=hierarchical_cols).sum(numeric_only=1)[
+            "proba"
+        ]
+        forecast_count = np.random.choice(prob_col.index, size=f, p=prob_col)
 
         categoriser_list.append(dict(Counter(forecast_count)))
 
     output_categoriser = pd.DataFrame()
-    output_categoriser['ds'] = fcst_additions.index
-    output_categoriser['cat'] = categoriser_list
+    output_categoriser["ds"] = fcst_additions.index
+    output_categoriser["cat"] = categoriser_list
 
-    return output_categoriser.set_index('ds')
+    return output_categoriser.set_index("ds")
