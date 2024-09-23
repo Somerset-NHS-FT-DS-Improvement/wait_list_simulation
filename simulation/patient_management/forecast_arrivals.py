@@ -27,15 +27,12 @@ class Forecaster:
         input_data = self.data_in.set_index("dst").asfreq("d").fillna(0)
         self.data = input_data[["refs"]].rename(columns={"refs": "y"})["y"]
 
-    def _create_holiday_dataframe(self):
+    def _create_holiday_dataframe(self, date_range):
         """
         Create daily binary dataframe for English holidays during historic/forecast period.
         To use as external regressors.
         """
-
-        date_range = pd.date_range(
-            start=self.data.index.min(), periods=len(self.data) + self.fh, freq="D"
-        )
+        self.date_range = date_range
 
         # Create a dict-like object for England's public holidays
         uk_holidays = holidays.UK(
@@ -54,7 +51,7 @@ class Forecaster:
             "Boxing Day",
         ]
 
-        uk_holidays = pd.DataFrame(uk_holidays.items(), columns=["ds", "holiday"])
+        uk_holidays = pd.DataFrame(uk_holidays.items(), columns=["ds", "holiday"], dtype=)
         uk_holidays["ds"] = pd.to_datetime(uk_holidays["ds"])
 
         holiday_df = uk_holidays[uk_holidays.ds.isin(date_range)]
@@ -68,12 +65,12 @@ class Forecaster:
 
         for x in holiday_df.holiday.unique():
             exog_holiday_df[x] = (
-                exog_holiday_df.ds.isin(holiday_df[holiday_df.holiday == x].ds) * 1
+                exog_holiday_df.ds.isin(holiday_df[holiday_df.holiday == x].ds)
             )
 
         holidays_data = exog_holiday_df.set_index("ds", drop=True).sort_index()
         holidays_data.index.name = "dst"
-        self.holidays = holidays_data.astype("float")
+        self.holidays = holidays_data.astype("float") # Convert to float (sktime requirement)
 
     def forecast(self, model=StatsForecastAutoARIMA(sp=7)):
         """
@@ -83,15 +80,14 @@ class Forecaster:
         Args:
             - model (from sk-time)
         """
-
-        self._create_holiday_dataframe()
-
-        self.model = model
-        self.model.fit(y=self.data, X=self.holidays.loc[self.data.index])
-
         fcst_range = pd.date_range(
             start=self.data.index.min(), periods=len(self.data) + self.fh, freq="D"
         )
+
+        self._create_holiday_dataframe(date_range=fcst_range)
+
+        self.model = model
+        self.model.fit(y=self.data, X=self.holidays.loc[self.data.index])
 
         # Output forecast.
         forecast = self.model.predict(
