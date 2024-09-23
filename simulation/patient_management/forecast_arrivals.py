@@ -51,7 +51,7 @@ class Forecaster:
             "Boxing Day",
         ]
 
-        uk_holidays = pd.DataFrame(uk_holidays.items(), columns=["ds", "holiday"], dtype=)
+        uk_holidays = pd.DataFrame(uk_holidays.items(), columns=["ds", "holiday"])
         uk_holidays["ds"] = pd.to_datetime(uk_holidays["ds"])
 
         holiday_df = uk_holidays[uk_holidays.ds.isin(date_range)]
@@ -64,13 +64,15 @@ class Forecaster:
         holiday_df["ds"] = holiday_df["ds"].values
 
         for x in holiday_df.holiday.unique():
-            exog_holiday_df[x] = (
-                exog_holiday_df.ds.isin(holiday_df[holiday_df.holiday == x].ds)
+            exog_holiday_df[x] = exog_holiday_df.ds.isin(
+                holiday_df[holiday_df.holiday == x].ds
             )
 
         holidays_data = exog_holiday_df.set_index("ds", drop=True).sort_index()
         holidays_data.index.name = "dst"
-        self.holidays = holidays_data.astype("float") # Convert to float (sktime requirement)
+        self.holidays = holidays_data.astype(
+            "float"
+        )  # Convert to float (sktime requirement)
 
     def forecast(self, model=StatsForecastAutoARIMA(sp=7)):
         """
