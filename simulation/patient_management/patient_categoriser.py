@@ -3,14 +3,6 @@ import numpy as np
 from collections import Counter
 
 
-def fetch_historic_sql():
-
-    """
-    !ToDo
-    Function containing sql to historical data for proportions.
-    """
-    pass
-
 def patient_categoriser(fcst_additions, hierarchical_cols, historic_data, seed=42):
 
     """
