@@ -55,15 +55,16 @@ class Forecaster:
         ]
 
         uk_holidays = pd.DataFrame(uk_holidays.items(), columns=["ds", "holiday"])
+        uk_holidays["ds"] = pd.to_datetime(uk_holidays["ds"])
 
-        holiday_df = uk_holidays[pd.to_datetime(uk_holidays.ds).isin(date_range)]
+        holiday_df = uk_holidays[uk_holidays.ds.isin(date_range)]
         holiday_df = holiday_df[holiday_df.holiday.isin(holiday_vals)]
 
         exog_holiday_df = pd.DataFrame()
         exog_holiday_df["ds"] = date_range
 
         exog_holiday_df["ds"] = pd.to_datetime(exog_holiday_df["ds"])
-        holiday_df["ds"] = pd.to_datetime(holiday_df["ds"])
+        holiday_df["ds"] = holiday_df["ds"].values
 
         for x in holiday_df.holiday.unique():
             exog_holiday_df[x] = (
@@ -117,7 +118,7 @@ class Forecaster:
 
         daily_growth_factor = [
             ((self.annual_growth_rate / 365) * i)
-            for i in range(1, len(forecasts_df) + 1)
+            for i in range(1, len(self.forecast) + 1)
         ]
 
         forecast_sums = forecasts_df.sum()
