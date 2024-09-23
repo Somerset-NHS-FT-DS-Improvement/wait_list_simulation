@@ -29,8 +29,12 @@ def test_pre_processing(forecaster_instance):
 
 def test_create_holiday_dataframe(forecaster_instance):
     # Test holiday dataframe creation
+
     forecaster_instance.pre_processing()  # Must preprocess data first
-    forecaster_instance._create_holiday_dataframe()
+    fcst_range = pd.date_range(
+        start='2022-01-01', periods=len(forecaster_instance.data) + 14, freq="D"
+    )
+    forecaster_instance._create_holiday_dataframe(date_range=fcst_range)
 
     holidays = forecaster_instance.holidays
     assert isinstance(holidays, pd.DataFrame), "Holidays should be a pandas DataFrame"
