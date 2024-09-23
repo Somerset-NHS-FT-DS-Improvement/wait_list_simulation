@@ -27,8 +27,6 @@ def patient_categoriser(fcst_additions, hierarchical_cols, historic_data, seed=N
 
     probabilities_df = pd.DataFrame(probabilities, columns=['proba']).reset_index()
 
-    print(probabilities_df)
-
     categoriser_list=[]
     for f in fcst_additions.values:
 
