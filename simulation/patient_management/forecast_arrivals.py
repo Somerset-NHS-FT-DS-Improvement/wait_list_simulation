@@ -98,9 +98,7 @@ class Forecaster:
             fh=np.arange(1, 1 + self.fh), X=self.holidays.loc[fcst_range]
         )
 
-        output = forecast.to_frame(name="yhat")
-
-        self.forecast = output
+        self.forecast = forecast.to_frame(name="yhat")
 
     def apply_growth(self, annual_growth_rate=0):
         """
