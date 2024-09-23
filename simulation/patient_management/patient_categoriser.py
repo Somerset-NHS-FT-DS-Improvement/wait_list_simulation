@@ -17,7 +17,7 @@ def patient_categoriser(fcst_additions, hierarchical_cols, historic_data, seed=N
         Pandas.DataFrame: A dictionary with hierarchical categories as keys and patient counts as values.
     """
 
-    np.random.seed(seed)
+    np.random.default_rng(seed=seed)
 
     cleaned_data = historic_data.dropna(subset=hierarchical_cols, how="any")
 
