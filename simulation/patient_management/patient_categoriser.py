@@ -3,7 +3,7 @@ import numpy as np
 from collections import Counter
 
 
-def patient_categoriser(fcst_additions, hierarchical_cols, historic_data, seed=42):
+def patient_categoriser(fcst_additions, hierarchical_cols, historic_data, seed=None):
 
     """
     Place patients in categories based on historic proportions.
