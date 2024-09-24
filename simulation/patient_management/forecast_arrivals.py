@@ -6,20 +6,58 @@ from sktime.forecasting.statsforecast import StatsForecastAutoARIMA
 
 class Forecaster:
 
-    def __init__(self, data_in, fh):
+    def __init__(self, data_in, fh, model=StatsForecastAutoARIMA(sp=7)):
         """
-        Forecasting class for referrals.
+        A forecasting class for predicting referrals.
 
         Args:
-            data_in (pd.DataFrame): Assuming the data will be daily with columns dst and refs.
-            fh (int): Output forecast horizon (in days).
+            data_in (pd.DataFrame): Input data, expected to be a daily time series
+                                    with at least two columns:
+                                    - 'dst': Date or timestamp column.
+                                    - 'refs': Referrals data.
+            fh (int): Forecast horizon, representing the number of future periods (in days)
+                      for which predictions will be generated.
+            model (sktime object, optional): The forecasting model to be used. Defaults to
+                                             StatsForecastAutoARIMA with a seasonal period (sp) of 7.
 
+        Attributes:
+            data (pd.DataFrame): The transformed data formatted in a structure suitable for the
+                                 sktime model.
+            forecast_data (pd.DataFrame): The output dataframe containing the forecasted results.
         """
 
         self.data_in = data_in
         self.fh = fh
+        self.model = model
+        self.data = None
+        self.forecast_data = None
 
-    def pre_processing(self):
+    def forecast(self):
+        """
+        Create forecast output.
+
+        !! ToDo: Use approach specific to count data (GLM?)
+        Args:
+            - model (from sk-time)
+        """
+
+        self._pre_processing()
+
+        fcst_range = pd.date_range(
+            start=self.data.index.min(), periods=len(self.data) + self.fh, freq="D"
+        )
+        self._create_holiday_dataframe(date_range=fcst_range)
+
+        self.model.fit(y=self.data, X=self.holidays.loc[self.data.index])
+
+        # Output forecast.
+        forecast = self.model.predict(
+            fh=np.arange(1, 1 + self.fh), X=self.holidays.loc[fcst_range]
+        )
+
+        self.forecast_data = forecast.to_frame(name="yhat")
+
+    def _pre_processing(self):
         """
         Structures data in required format for sk-time framework.
         """
@@ -74,30 +112,6 @@ class Forecaster:
             "float"
         )  # Convert to float (sktime requirement)
 
-    def forecast(self, model=StatsForecastAutoARIMA(sp=7)):
-        """
-        Create forecast output.
-
-        !! ToDo: Use approach specific to count data (GLM?)
-        Args:
-            - model (from sk-time)
-        """
-        fcst_range = pd.date_range(
-            start=self.data.index.min(), periods=len(self.data) + self.fh, freq="D"
-        )
-
-        self._create_holiday_dataframe(date_range=fcst_range)
-
-        self.model = model
-        self.model.fit(y=self.data, X=self.holidays.loc[self.data.index])
-
-        # Output forecast.
-        forecast = self.model.predict(
-            fh=np.arange(1, 1 + self.fh), X=self.holidays.loc[fcst_range]
-        )
-
-        self.forecast = forecast.to_frame(name="yhat")
-
     def apply_growth(self, annual_growth_rate=0):
         """
         Applies linear % annual growth to output forecast.
@@ -108,18 +122,14 @@ class Forecaster:
             Forecast with added growth.
         """
 
-        self.annual_growth_rate = annual_growth_rate
-
-        forecasts_df = self.forecast
-
         daily_growth_factor = [
-            ((self.annual_growth_rate / 365) * i)
-            for i in range(1, len(self.forecast) + 1)
+            ((annual_growth_rate / 365) * i)
+            for i in range(1, len(self.forecast_data) + 1)
         ]
 
-        forecast_sums = forecasts_df.sum()
+        forecast_sums = self.forecast_data.sum()
 
-        growth_amounts = forecast_sums * self.annual_growth_rate
+        growth_amounts = forecast_sums * annual_growth_rate
         growth = [
             growth_amounts.values[x] * np.array(daily_growth_factor)
             for x in range(0, len(forecast_sums.index))
@@ -128,11 +138,11 @@ class Forecaster:
         growth_addition = pd.DataFrame(growth).T
 
         growth_addition.columns = forecast_sums.index
-        growth_addition.index = forecasts_df.index
+        growth_addition.index = self.forecast_data.index
 
-        return forecasts_df.add(growth_addition)
+        self.forecast_data.add(growth_addition)
 
-    def convert_to_count(self, continuous_data):
+    def convert_to_count(self):
         """
         Convert to count data.
 
@@ -143,13 +153,9 @@ class Forecaster:
             Count data.
         """
 
-        self.continuous_data = continuous_data
+        remove_zeros = np.maximum(0, self.forecast_data)
 
-        remove_zeros = np.maximum(0, self.continuous_data)
-
-        count_forecast = np.round(remove_zeros, 0).astype(int)
-
-        return count_forecast
+        self.forecast_data = np.round(remove_zeros, 0).astype(int)
 
     def fit_error(self):
         """
