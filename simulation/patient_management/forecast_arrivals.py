@@ -70,12 +70,11 @@ class Forecaster:
         Create daily binary dataframe for English holidays during historic/forecast period.
         To use as external regressors.
         """
-        self.date_range = date_range
 
         # Create a dict-like object for England's public holidays
         uk_holidays = holidays.UK(
             state="England",
-            years=range(self.date_range.min().year, self.date_range.max().year + 1),
+            years=range(date_range.min().year, date_range.max().year + 1),
         )
 
         holiday_vals = [
@@ -92,11 +91,11 @@ class Forecaster:
         uk_holidays = pd.DataFrame(uk_holidays.items(), columns=["ds", "holiday"])
         uk_holidays["ds"] = pd.to_datetime(uk_holidays["ds"])
 
-        holiday_df = uk_holidays[uk_holidays.ds.isin(self.date_range)]
+        holiday_df = uk_holidays[uk_holidays.ds.isin(date_range)]
         holiday_df = holiday_df[holiday_df.holiday.isin(holiday_vals)]
 
         exog_holiday_df = pd.DataFrame()
-        exog_holiday_df["ds"] = self.date_range
+        exog_holiday_df["ds"] = date_range
 
         exog_holiday_df["ds"] = pd.to_datetime(exog_holiday_df["ds"])
         holiday_df["ds"] = holiday_df["ds"].values
