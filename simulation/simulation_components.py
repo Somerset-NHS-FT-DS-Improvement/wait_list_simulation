@@ -17,7 +17,7 @@ class PatientGenerator:
     def generate_patients(self, day_num, day):
         # Emergency and new patients dealt with through the interface with generate_new_patients
         if day_num != 0:
-            patients = self.generate_new_patients()
+            patients = self.generate_new_patients(day_num)
         else:
             patients = self.initial_waitlist
 
