@@ -3,9 +3,12 @@ import numpy as np
 import pandas as pd
 from sktime.forecasting.statsforecast import StatsForecastAutoARIMA
 
+import warnings
+
+warnings.filterwarnings("ignore")
+
 
 class Forecaster:
-
     def __init__(self, data_in, fh, model=StatsForecastAutoARIMA(sp=7)):
         """
         A forecasting class for predicting referrals.

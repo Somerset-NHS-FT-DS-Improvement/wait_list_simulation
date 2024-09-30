@@ -98,7 +98,7 @@ class MRINewPatients:
         if len(patient_indices) == 0:
             df = pd.DataFrame(columns=self.historic_data.columns)
         else:
-            df = self.historic_data.iloc[np.concatenate(patient_indices)]
-            df["wait_in_days"] = 0
+            df = self.historic_data.iloc[np.concatenate(patient_indices)].copy()
+            df.loc[:, "days waited"] = 0
 
         return df
