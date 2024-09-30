@@ -1,12 +1,9 @@
-from .simulation_components import (
-    PatientGenerator,
-    Capacity,
-    generate_simulation_graph,
-    get_appointment_duration,
-)
-from .patient_management.priority import PriorityCalculator
-
 import numpy as np
+
+from .patient_management.priority import PriorityCalculator
+from .simulation_components import (Capacity, PatientGenerator,
+                                    generate_simulation_graph,
+                                    get_appointment_duration)
 
 
 def parameterise_simulation(

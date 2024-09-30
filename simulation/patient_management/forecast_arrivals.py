@@ -1,9 +1,9 @@
+import warnings
+
 import holidays
 import numpy as np
 import pandas as pd
 from sktime.forecasting.statsforecast import StatsForecastAutoARIMA
-
-import warnings
 
 warnings.filterwarnings("ignore")
 
