@@ -82,7 +82,7 @@ class Capacity:
 
     def get(self, resource, patient, day_num, day):
         self.wait_list = pd.concat([self.wait_list, patient.to_frame().T])
-        self.wait_list.reset_index(drop=True)
+        self.wait_list.reset_index(drop=True, inplace=True)
 
         return True
 
