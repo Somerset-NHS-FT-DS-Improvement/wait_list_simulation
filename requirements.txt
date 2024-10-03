@@ -1,9 +1,9 @@
-numpy
-pytest
-pandas
-scipy
-networkx
-sqlalchemy
-holidays
-sktime
+numpy==1.24
+pandas==2.0
+scipy==1.11
+networkx==3.1
+sqlalchemy==1.4
+holidays==0.57
+sktime==0.29
 statsforecast>=1.0.0
+git+ssh://git@github.com/Somerset-NHS-FT-DS-Improvement/sfttoolbox.git
