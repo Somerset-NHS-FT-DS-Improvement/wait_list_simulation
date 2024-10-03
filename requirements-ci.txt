@@ -6,4 +6,4 @@ sqlalchemy==1.4
 holidays==0.57
 sktime==0.29
 statsforecast>=1.0.0
-git+https://x-access-token:${{ GITHUB_TOKEN }}@github.com/Somerset-NHS-FT-DS-Improvement/sfttoolbox.git
+git+https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/Somerset-NHS-FT-DS-Improvement/sfttoolbox.git
