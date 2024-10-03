@@ -28,7 +28,7 @@ jobs:
 #        pip install  pytest
 #        pip install -r requirements-ci.txt
       env:
-        GITHUB_TOKEN: secrets.GITHUB_TOKEN
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Test with pytest
       run: |
         pytest -v
