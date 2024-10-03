@@ -1,8 +1,9 @@
-import pytest
-import pandas as pd
 import numpy as np
-from sktime.forecasting.statsforecast import StatsForecastAutoARIMA
+import pandas as pd
+import pytest
 from holidays import UK
+from sktime.forecasting.statsforecast import StatsForecastAutoARIMA
+
 from simulation.patient_management.forecast_arrivals import Forecaster
 
 

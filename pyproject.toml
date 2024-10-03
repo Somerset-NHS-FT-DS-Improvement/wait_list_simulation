@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "simulation"
+version = "0.1.0"
+authors = [
+    { name="Chris Sampson", email="christopher.sampson@somersetft.nhs.uk" },
+    { name="Andy Mayne", email="andrew.mayne@somersetft.nhs.uk" },
+    { name="Ben Holdsworth", email="Benjamin.Holdsworth@somersetft.nhs.uk" },
+    { name="Laura Mayne", email="laura.mayne@somersetft.nhs.uk" },
+    { name="Sam Vautier", email="samantha.vautier@somersetft.nhs.uk" },
+]
+description = "Simulation framework for SFT waiting lists."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/Somerset-NHS-FT-DS-Improvement/wait_list_simulation"
+Issues = "https://github.com/Somerset-NHS-FT-DS-Improvement/wait_list_simulation/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]

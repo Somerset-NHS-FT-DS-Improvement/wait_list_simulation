@@ -1,11 +1,14 @@
+import warnings
+
 import holidays
 import numpy as np
 import pandas as pd
 from sktime.forecasting.statsforecast import StatsForecastAutoARIMA
 
+warnings.filterwarnings("ignore")
+
 
 class Forecaster:
-
     def __init__(self, data_in, fh, model=StatsForecastAutoARIMA(sp=7)):
         """
         A forecasting class for predicting referrals.
@@ -61,6 +64,7 @@ class Forecaster:
         """
         Structures data in required format for sk-time framework.
         """
+        self.data_in["dst"] = pd.to_datetime(self.data_in["dst"])
 
         input_data = self.data_in.set_index("dst").asfreq("d").fillna(0)
         self.data = input_data[["refs"]].rename(columns={"refs": "y"})["y"]
