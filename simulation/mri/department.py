@@ -43,7 +43,7 @@ class Department:
     def match_mri_resource(self, waiting_list_df, day, day_num): 
         """
         Matches patients from the waiting list to available resource slots for a given day.
-        Tracks patients who are seen, resource time not utilized.
+        Tracks patients who are seen, resource time not utilised.
 
         Parameters:
             waiting_list_df (pd.DataFrame): DataFrame containing the patient waiting list.
