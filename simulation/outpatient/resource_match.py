@@ -8,6 +8,8 @@ class OutpatientResourceMatcher:
         # Load the resource information
         resource_df = pd.read_sql(f"EXECUTE [wl].[outpatient_clinics] @tfc='{treatment_function_code}'", engine)
 
+        breakpoint()
+
         self.resource = self.__process_capacity(resource_df)
 
     def __process_capacity(self, resource_df):
@@ -25,7 +27,7 @@ class OutpatientResourceMatcher:
 
         breakpoint()
 
-        # match wait_list["appointment_type"] to appointments in next(self.resource)
+
         # indices = []
         # for appointment types in next(self.resource):
         #  indices += subset wait_list["appointment_type"].iloc[: num of slots].index
