@@ -116,14 +116,13 @@ class Department:
                         total_scheduled_time += duration
                         matched_indices.add(index)
                 
-                if available_duration - total_scheduled_time > 0:
-                    time_not_utilised.append({
-                        'resource_name': resource_name,
-                        'day': day,
-                        'slot': slot,
-                        'not_utilised_mins': available_duration - total_scheduled_time,
-                        'activity': label
-                    })   
+                time_not_utilised.append({
+                    'resource_name': resource_name,
+                    'day': day,
+                    'slot': slot,
+                    'not_utilised_mins': available_duration - total_scheduled_time,
+                    'activity': label
+                })   
         
         self.__update_metrics(time_not_utilised, day_num)
         
