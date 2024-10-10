@@ -100,47 +100,33 @@ class Department:
                 activity_matched_list_df = resource_waiting_list_df[resource_waiting_list_df['activity'] == label]
                         
                 total_scheduled_time = 0
-                check_index = None
 
                 # each patient in the matched activity slot for this resource, day
                 for index, patient in activity_matched_list_df.iterrows():
-                    if index in matched_indices:
-                        continue
-                    
                     duration = patient['duration_mins']
-                    check_index = index
-                    # check patient can be scheduled within available slot time
-                    if total_scheduled_time + duration <= available_duration:
+                    remaining_time = available_duration - total_scheduled_time
+                    time_available = remaining_time - duration >= 0
+                    
+                    if remaining_time < 15:
+                        break  # time slot exceeded, break and move to next slot
+                    elif index in matched_indices or not time_available:
+                        continue
+                    else:
                         # patient seen
                         total_scheduled_time += duration
                         matched_indices.add(index)
-                        
-                    else:
-                        remaining_time = available_duration - total_scheduled_time
-                        if remaining_time >= 15:
-                            for next_idx, next_patient in activity_matched_list_df.iterrows():
-                                if next_idx != check_index and next_idx not in matched_indices and next_patient['duration_mins'] <= remaining_time:
-                                    # schedule patient                                
-                                    total_scheduled_time += next_patient['duration_mins']
-                                    matched_indices.add(next_idx)
-                                    
-                                    break                              
-                        
-                        # time slot exceeded, break and move to next slot
-                        time_not_utilised.append({
-                            'resource_name': resource_name,
-                            'day': day,
-                            'slot': slot,
-                            'not_utilised_mins': available_duration - total_scheduled_time,
-                            'activity': label
-                        })      
-                                    
-                        break  
+                
+                if available_duration - total_scheduled_time > 0:
+                    time_not_utilised.append({
+                        'resource_name': resource_name,
+                        'day': day,
+                        'slot': slot,
+                        'not_utilised_mins': available_duration - total_scheduled_time,
+                        'activity': label
+                    })   
         
         self.__update_metrics(time_not_utilised, day_num)
         
         # TODO: Follow-ups
         
         return matched_indices
-
-
