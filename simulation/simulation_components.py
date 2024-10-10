@@ -78,7 +78,7 @@ class Capacity:
         )
         self.wait_list = self.wait_list.iloc[indices]
 
-        patients_to_move_on_indices = self.match_resource(self.wait_list)
+        patients_to_move_on_indices = self.match_resource(self.wait_list, day, day_num)
 
         patients_to_move_on = self.wait_list[self.wait_list.index.isin(patients_to_move_on_indices)]
         self.wait_list.drop(index=patients_to_move_on_indices, inplace=True)
