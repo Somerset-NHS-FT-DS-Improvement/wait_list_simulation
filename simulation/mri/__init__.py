@@ -7,6 +7,7 @@ import sqlalchemy as sa
 from ..patient_management.forecast_arrivals import Forecaster
 from ..patient_management.patient_categoriser import patient_categoriser
 from .. import parameterise_simulation
+from simulation.mri.department import Department
 
 
 class MRINewPatients:
@@ -156,13 +157,7 @@ def get_initial_waiting_list(
         open(f"{path_to_sql_files}/MRI_current_waiting_list.sql", "r").read(), engine
     )
 
-
-def resource_dummy_function(in_list):
-    num_patients_to_remove = np.random.randint(0, 10)
-    return in_list.iloc[:num_patients_to_remove].index
-
-
-def setup_mri_simulation(path_to_sql_files: str, seed: int = None) -> tuple[int, "Simulation"]:
+def setup_mri_simulation(path_to_sql_files: str, path_to_json_file: str, seed: int = None) -> tuple[int, "Simulation"]:
     """
     Sets up and initializes the MRI simulation.
 
@@ -195,8 +190,10 @@ def setup_mri_simulation(path_to_sql_files: str, seed: int = None) -> tuple[int,
     # initial waiting list
     initial_waiting_list = get_initial_waiting_list(engine, path_to_sql_files)
 
+    dept = Department(path_to_json_file)
+       
     # resource matching
-    resource_matching_function = resource_dummy_function
+    resource_matching_function = dept.match_mri_resource
 
     # priority order
     priority_order = [
@@ -238,4 +235,5 @@ def setup_mri_simulation(path_to_sql_files: str, seed: int = None) -> tuple[int,
         capacity_seed=seeds[7],
     )
 
-    return seed, sim
+        
+    return seed, sim, dept
