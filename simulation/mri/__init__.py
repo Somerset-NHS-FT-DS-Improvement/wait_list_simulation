@@ -229,7 +229,6 @@ def setup_mri_simulation(path_to_sql_files: str, dna_rate: float = None, cancell
         "Under maximum wait time",
     ]
 
-
     sim = parameterise_simulation(
         initial_waiting_list,
         new_patient_function,
@@ -245,5 +244,4 @@ def setup_mri_simulation(path_to_sql_files: str, dna_rate: float = None, cancell
         cancellation_seed = cancellation_seed
     )
 
-        
     return seed, sim

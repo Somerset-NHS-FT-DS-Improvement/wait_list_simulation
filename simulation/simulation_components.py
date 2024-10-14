@@ -124,8 +124,12 @@ class Capacity:
         self.metrics["num_patients_seen"].append(num_patients_seen)
         self.metrics["num_dnas"].append(num_dnas)
         self.metrics["num_cancellations"].append(num_cancellations)
-        # breaches
-        # median wait time per category
+        self.metrics["num_breaches"].append(self.__calculate_breaches())
+        self.metrics["median_wait_times_by_priority"].append(self.wait_list.groupby("priority")["days waited"].median().to_dict())
+
+    def __calculate_breaches(self):
+        min_max_wait_times = self.prioritisation_calculator.calculate_min_and_max_wait_times(self.wait_list)
+        return self.wait_list[self.wait_list["days waited"] > min_max_wait_times[:, 0]].groupby("priority")["census"].count().to_dict()
 
     def __yield_patient(self, iterable_object):
         for _, patient in iterable_object:

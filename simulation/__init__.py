@@ -39,9 +39,6 @@ def parameterise_simulation(
 
     rott_removals = rott.return_number_of_removals()
 
-    # TODO: parameterise emergency generation
-
-    # TODO: Pass all the rates and rngs through
     cap = Capacity(
         resource_matching_function,
         pc,
