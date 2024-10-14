@@ -2,6 +2,8 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
+from collections import defaultdict
+
 
 class PatientGenerator:
     def __init__(
@@ -61,7 +63,7 @@ class Capacity:
         self.wait_list["id"] = [*range(0, self.wait_list.shape[0])]
         self.wait_list["pathway"] = [[] for _ in range(self.wait_list.shape[0])]
 
-        self.metrics = {"maximum_wait_time": [], "wait_list_length": []}
+        self.metrics = defaultdict(lambda : [])
 
     def get(self, resource, patient, day_num, day):
         self.wait_list = pd.concat([self.wait_list, patient.to_frame().T])
@@ -77,29 +79,30 @@ class Capacity:
         self.wait_list = self.wait_list.iloc[indices]
 
         patients_to_move_on_indices, fu_patients = self.match_resource(self.wait_list, day, day_num)
+        num_patients_seen = len(patients_to_move_on_indices)
 
         patients_to_move_on = self.wait_list[self.wait_list.index.isin(patients_to_move_on_indices)]
         self.wait_list.drop(index=patients_to_move_on_indices, inplace=True)
 
-        # TODO: add patients to have fu to the wait list with new FU label -- Do this in the resource, send back the dataframe of FUs
+        # All FU logic is bespoke, and added in the resource matching function
+        if fu_patients is not None:
+            self.wait_list = pd.concat([self.wait_list, fu_patients])
 
         # TODO: Cancel and DNA needs to be taken from the patients to move on -- check the process for DNAs and cancellations )do they go back on the list?)
-
-        # Or take patients to move on, and randomly select to have FU appts?
-        # Use a geometric distribution, 1/1-p = total num of desired appts, solve for p, then random number lower than p means a fu is done
 
         rott_patients = self.rng.choice(self.wait_list.index, self.rott_removals[day_num])
         self.wait_list.drop(index=rott_patients, inplace=True)
 
-        self.__update_metrics()
+        self.__update_metrics(num_patients_seen)
         self.wait_list["days waited"] += 1
 
         iterable_patients = patients_to_move_on.iterrows()
         return self.__yield_patient(iterable_patients)
 
-    def __update_metrics(self):
+    def __update_metrics(self, num_patients_seen):
         self.metrics["maximum_wait_time"].append(self.wait_list["days waited"].max())
         self.metrics["wait_list_length"].append(self.wait_list.shape[0])
+        self.metrics["num_patients_seen"].append(num_patients_seen)
 
     def __yield_patient(self, iterable_object):
         for _, patient in iterable_object:
