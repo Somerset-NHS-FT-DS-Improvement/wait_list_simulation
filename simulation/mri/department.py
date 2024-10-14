@@ -2,7 +2,7 @@ import pandas as pd
 import json
 from typing import List
     
-class Department:
+class MRIDepartment:
     """
     Initialise the Department with resources data from a JSON file.
     
