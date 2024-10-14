@@ -18,12 +18,12 @@ def parameterise_simulation(
     dna_rate,
     cancellation_rate,
     length_of_simulation,
-    dna_rng,
-    cancellation_rng,
     rott_sql_query = None,
     rott_dist_params = None,
     rott_seed = None,
     capacity_seed = None,
+    dna_seed = None,
+    cancellation_seed = None
 ):
     pg = PatientGenerator(new_patient_function, start_id=initial_waitlist.shape[0])
 
@@ -49,7 +49,9 @@ def parameterise_simulation(
         cancellation_rate,
         initial_waitlist,
         rott_removals,
-        seed = capacity_seed
+        seed = capacity_seed,
+        dna_seed = dna_seed,
+        cancellation_seed = cancellation_seed
     )
 
     G = generate_simulation_graph(cap, get_appointment_duration)

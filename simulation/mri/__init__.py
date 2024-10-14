@@ -176,8 +176,8 @@ def setup_mri_simulation(path_to_sql_files: str, dna_rate: float = None, cancell
 
     new_patient_seed=seeds[0],
     patient_categoriser_seed=seeds[1],
-    dna_rng = np.random.default_rng(seed=seeds[2])
-    cancellation_rng = np.random.default_rng(seed=seeds[3])
+    dna_seed = seeds[2]
+    cancellation_seed = seeds[3]
     emergency_rng = np.random.default_rng(seed=seeds[4])
     fu_rng = np.random.default_rng(seed=seeds[5])
     rott_seed = seeds[6]
@@ -238,11 +238,11 @@ def setup_mri_simulation(path_to_sql_files: str, dna_rate: float = None, cancell
         dna_rate,
         cancellation_rate,
         forecast_horizon,
-        dna_rng,
-        cancellation_rng,
         rott_dist_params=rott_dist_params,
         rott_seed=rott_seed,
         capacity_seed = capacity_seed,
+        dna_seed = dna_seed,
+        cancellation_seed = cancellation_seed
     )
 
         

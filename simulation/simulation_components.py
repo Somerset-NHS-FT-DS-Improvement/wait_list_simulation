@@ -48,6 +48,8 @@ class Capacity:
         initial_wait_list,
         rott_removals,
         seed = None,
+        dna_seed = None,
+        cancellation_seed = None
     ):
         self.wait_list = initial_wait_list
         self.prioritisation_calculator = prioritisation_calculator
@@ -59,6 +61,8 @@ class Capacity:
         self.rott_removals = rott_removals
 
         self.rng = np.random.default_rng(seed)
+        self.dna_rng = np.random.default_rng(dna_seed)
+        self.cancellation_rng = np.random.default_rng(cancellation_seed)
 
         self.wait_list["id"] = [*range(0, self.wait_list.shape[0])]
         self.wait_list["pathway"] = [[] for _ in range(self.wait_list.shape[0])]
@@ -81,6 +85,14 @@ class Capacity:
         patients_to_move_on_indices, fu_patients = self.match_resource(self.wait_list, day, day_num)
         num_patients_seen = len(patients_to_move_on_indices)
 
+        num_dnas = 0
+        if self.dna_rate:
+            patients_to_move_on_indices, num_dnas = self.__calculate_non_attendance(patients_to_move_on_indices, self.dna_rate, self.dna_rng)
+
+        num_cancellations = 0
+        if self.cancellation_rate:
+            patients_to_move_on_indices, num_cancellations = self.__calculate_non_attendance(patients_to_move_on_indices, self.cancellation_rate, self.cancellation_rng)
+
         patients_to_move_on = self.wait_list[self.wait_list.index.isin(patients_to_move_on_indices)]
         self.wait_list.drop(index=patients_to_move_on_indices, inplace=True)
 
@@ -88,21 +100,32 @@ class Capacity:
         if fu_patients is not None:
             self.wait_list = pd.concat([self.wait_list, fu_patients])
 
-        # TODO: Cancel and DNA needs to be taken from the patients to move on -- check the process for DNAs and cancellations )do they go back on the list?)
-
         rott_patients = self.rng.choice(self.wait_list.index, self.rott_removals[day_num])
         self.wait_list.drop(index=rott_patients, inplace=True)
 
-        self.__update_metrics(num_patients_seen)
+        self.__update_metrics(num_patients_seen, num_dnas, num_cancellations)
         self.wait_list["days waited"] += 1
 
         iterable_patients = patients_to_move_on.iterrows()
         return self.__yield_patient(iterable_patients)
 
-    def __update_metrics(self, num_patients_seen):
+    def __calculate_non_attendance(self, patients_assigned_slots_indices, rate, rng):
+        num_non_attend = int(len(patients_assigned_slots_indices) * rate)
+        patients_not_attending_indices = rng.choice(patients_assigned_slots_indices, num_non_attend, replace=False)
+
+        for patient_index in patients_not_attending_indices:
+            patients_assigned_slots_indices.remove(patient_index)
+
+        return patients_assigned_slots_indices, num_non_attend
+
+    def __update_metrics(self, num_patients_seen, num_dnas, num_cancellations):
         self.metrics["maximum_wait_time"].append(self.wait_list["days waited"].max())
         self.metrics["wait_list_length"].append(self.wait_list.shape[0])
         self.metrics["num_patients_seen"].append(num_patients_seen)
+        self.metrics["num_dnas"].append(num_dnas)
+        self.metrics["num_cancellations"].append(num_cancellations)
+        # breaches
+        # median wait time per category
 
     def __yield_patient(self, iterable_object):
         for _, patient in iterable_object:
