@@ -244,4 +244,4 @@ def setup_mri_simulation(path_to_sql_files: str, dna_rate: float = None, cancell
         cancellation_seed = cancellation_seed
     )
 
-    return seed, sim
+    return seed, sim, mridept
