@@ -157,7 +157,7 @@ def get_initial_waiting_list(
         open(f"{path_to_sql_files}/MRI_current_waiting_list.sql", "r").read(), engine
     )
 
-def setup_mri_simulation(path_to_sql_files: str, seed: int = None) -> tuple[int, "Simulation"]:
+def setup_mri_simulation(path_to_sql_files: str, dna_rate: float = None, seed: int = None) -> tuple[int, "Simulation"]:
     """
     Sets up and initializes the MRI simulation.
 
@@ -173,6 +173,21 @@ def setup_mri_simulation(path_to_sql_files: str, seed: int = None) -> tuple[int,
 
     # seeds
     seeds = np.random.default_rng(seed).integers(0, 2**32, 8)
+
+    # dna_rate, cancellation_rate, emergency_rate, fu_rate
+    dna_rng = np.random.default_rng(seed=seeds[2])
+    cancellation_rng = np.random.default_rng(seed=seeds[3])
+    emergency_rng = np.random.default_rng(seed=seeds[4])
+    fu_rng = np.random.default_rng(seed=seeds[5])
+    rott_seed = seeds[6]
+    capacity_seed = seeds[7]
+
+    if not dna_rate:
+        dna_rate = pd.read_sql(open(f"{path_to_sql_files}/MRI_dna_rate.sql", 'r').read(), engine).values[0, 0]
+    cancellation_rate = 0
+    emergency_rate = 0
+    fu_rate = 0
+    rott_dist_params = {"mean": 1, "stddev": 1}
 
     # length_of_simulation
     forecast_horizon = 5
@@ -205,16 +220,6 @@ def setup_mri_simulation(path_to_sql_files: str, seed: int = None) -> tuple[int,
         "Under maximum wait time",
     ]
 
-    # dna_rate, cancellation_rate, emergency_rate, fu_rate
-    dna_rate = 0
-    cancellation_rate = 0
-    emergency_rate = 0
-    fu_rate = 0
-    dna_rng = np.random.default_rng(seed=seeds[2])
-    cancellation_rng = np.random.default_rng(seed=seeds[3])
-    emergency_rng = np.random.default_rng(seed=seeds[4])
-    fu_rng = np.random.default_rng(seed=seeds[5])
-    rott_dist_params = {"mean": 1, "stddev": 1}
 
     sim = parameterise_simulation(
         initial_waiting_list,
@@ -231,8 +236,8 @@ def setup_mri_simulation(path_to_sql_files: str, seed: int = None) -> tuple[int,
         emergency_rng,
         fu_rng,
         rott_dist_params=rott_dist_params,
-        rott_seed=seeds[6],
-        capacity_seed=seeds[7],
+        rott_seed=rott_seed,
+        capacity_seed = capacity_seed,
     )
 
         
