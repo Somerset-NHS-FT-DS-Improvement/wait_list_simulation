@@ -134,9 +134,13 @@ class MRIDepartment:
 
         self.__update_metrics(time_not_utilised, day_num)
 
-        # TODO: Follow-ups
-        breakpoint()
+        fu_df = None
+        matched_indices = list(matched_indices)
         if self.fu_rate:
-            pass
+            num_fus = int(len(matched_indices) * self.fu_rate)
+            fu_indices = self.fu_rng.choice(matched_indices, num_fus)
+            fu_df = waiting_list_df.iloc[fu_indices]
+            fu_df["priority"] = "Follow up"
+            fu_df["days waited"] = 0
 
-        return matched_indices
+        return matched_indices, fu_df
