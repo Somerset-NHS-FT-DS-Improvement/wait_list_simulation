@@ -157,7 +157,7 @@ def get_initial_waiting_list(
         open(f"{path_to_sql_files}/MRI_current_waiting_list.sql", "r").read(), engine
     )
 
-def setup_mri_simulation(path_to_sql_files: str, dna_rate: float = None, seed: int = None) -> tuple[int, "Simulation"]:
+def setup_mri_simulation(path_to_sql_files: str, dna_rate: float = None, cancellation_rate: float = None, fu_rate: float = None, seed: int = None) -> tuple[int, "Simulation"]:
     """
     Sets up and initializes the MRI simulation.
 
@@ -174,7 +174,8 @@ def setup_mri_simulation(path_to_sql_files: str, dna_rate: float = None, seed: i
     # seeds
     seeds = np.random.default_rng(seed).integers(0, 2**32, 8)
 
-    # dna_rate, cancellation_rate, emergency_rate, fu_rate
+    new_patient_seed=seeds[0],
+    patient_categoriser_seed=seeds[1],
     dna_rng = np.random.default_rng(seed=seeds[2])
     cancellation_rng = np.random.default_rng(seed=seeds[3])
     emergency_rng = np.random.default_rng(seed=seeds[4])
@@ -182,12 +183,16 @@ def setup_mri_simulation(path_to_sql_files: str, dna_rate: float = None, seed: i
     rott_seed = seeds[6]
     capacity_seed = seeds[7]
 
-    if not dna_rate:
+    if dna_rate is None:
         dna_rate = pd.read_sql(open(f"{path_to_sql_files}/MRI_dna_rate.sql", 'r').read(), engine).values[0, 0]
-    cancellation_rate = 0
+    if cancellation_rate is None:
+        cancellation_rate = pd.read_sql(open(f"{path_to_sql_files}/MRI_cancellation_rate.sql", 'r').read(), engine).values[0, 0]
     emergency_rate = 0
-    fu_rate = 0
-    rott_dist_params = {"mean": 1, "stddev": 1}
+    if fu_rate is None:
+        # TODO: put a SQL query here!
+        fu_rate = 0
+    # TODO: parameterise this from the simulation
+    rott_dist_params = {"mean": 0, "stddev": 0}
 
     # length_of_simulation
     forecast_horizon = 5
@@ -197,15 +202,19 @@ def setup_mri_simulation(path_to_sql_files: str, dna_rate: float = None, seed: i
         engine,
         forecast_horizon,
         path_to_sql_files,
-        new_patient_seed=seeds[0],
-        patient_categoriser_seed=seeds[1],
+        new_patient_seed=new_patient_seed,
+        patient_categoriser_seed=patient_categoriser_seed,
     )
     new_patient_function = mc.generate_new_patients
 
     # initial waiting list
     initial_waiting_list = get_initial_waiting_list(engine, path_to_sql_files)
 
-    mridept = MRIDepartment(f"{path_to_sql_files}/transformed_mri_scanners.json")
+    mridept = MRIDepartment(
+        f"{path_to_sql_files}/transformed_mri_scanners.json",
+        fu_rate,
+        fu_rng
+    )
        
     # resource matching
     resource_matching_function = mridept.match_mri_resource
@@ -229,12 +238,10 @@ def setup_mri_simulation(path_to_sql_files: str, dna_rate: float = None, seed: i
         dna_rate,
         cancellation_rate,
         emergency_rate,
-        fu_rate,
         forecast_horizon,
         dna_rng,
         cancellation_rng,
         emergency_rng,
-        fu_rng,
         rott_dist_params=rott_dist_params,
         rott_seed=rott_seed,
         capacity_seed = capacity_seed,
