@@ -43,7 +43,6 @@ class Capacity:
         prioritisation_calculator,
         dna_rate,
         cancellation_rate,
-        fu_rate,
         initial_wait_list,
         rott_removals,
         seed = None,
@@ -54,7 +53,6 @@ class Capacity:
 
         self.dna_rate = dna_rate
         self.cancellation_rate = cancellation_rate
-        self.fu_rate = fu_rate
 
         self.rott_removals = rott_removals
 

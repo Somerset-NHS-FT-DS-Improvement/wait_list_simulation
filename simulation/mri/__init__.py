@@ -191,8 +191,8 @@ def setup_mri_simulation(path_to_sql_files: str, dna_rate: float = None, cancell
     if fu_rate is None:
         # TODO: put a SQL query here!
         fu_rate = 0
-    # TODO: parameterise this from the simulation
-    rott_dist_params = {"mean": 0, "stddev": 0}
+    # TODO: parameterise this from the sql
+    rott_dist_params = {"mean": 0, "stddev": 0.0001}
 
     # length_of_simulation
     forecast_horizon = 5
@@ -237,11 +237,9 @@ def setup_mri_simulation(path_to_sql_files: str, dna_rate: float = None, cancell
         priority_order,
         dna_rate,
         cancellation_rate,
-        emergency_rate,
         forecast_horizon,
         dna_rng,
         cancellation_rng,
-        emergency_rng,
         rott_dist_params=rott_dist_params,
         rott_seed=rott_seed,
         capacity_seed = capacity_seed,

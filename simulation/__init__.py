@@ -4,6 +4,8 @@ from .simulation_components import (Capacity, PatientGenerator,
                                     get_appointment_duration)
 from .patient_management.rott import RemovalOtherThanTreatment
 
+import sfttoolbox
+
 
 __all__ = ["parameterise_simulation"]
 
@@ -15,21 +17,14 @@ def parameterise_simulation(
     priority_order,
     dna_rate,
     cancellation_rate,
-    emergency_rate,
-    fu_rate,
     length_of_simulation,
     dna_rng,
     cancellation_rng,
-    emergency_rng,
-    fu_rng,
     rott_sql_query = None,
     rott_dist_params = None,
     rott_seed = None,
     capacity_seed = None,
 ):
-    # TODO: Fix this hack... make sfttoolbox available outside of org?
-    import sfttoolbox
-
     pg = PatientGenerator(new_patient_function, start_id=initial_waitlist.shape[0])
 
     pc = PriorityCalculator(priority_order)
@@ -52,7 +47,6 @@ def parameterise_simulation(
         pc,
         dna_rate,
         cancellation_rate,
-        fu_rate,
         initial_waitlist,
         rott_removals,
         seed = capacity_seed

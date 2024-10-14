@@ -81,9 +81,7 @@ class MRIDepartment:
         time_not_utilised = []
         matched_indices = set()
 
-        # each resource
         for resource_name, resource_info in self.resources.items():
-            # get slots for the given day
             day_slots = resource_info.get("day", {}).get(day)
 
             if not day_slots:
@@ -137,5 +135,8 @@ class MRIDepartment:
         self.__update_metrics(time_not_utilised, day_num)
 
         # TODO: Follow-ups
+        breakpoint()
+        if self.fu_rate:
+            pass
 
         return matched_indices
