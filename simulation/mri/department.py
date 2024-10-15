@@ -11,6 +11,8 @@ class MRIDepartment:
 
     Args:
         json_file_path (str): Path to the JSON file containing resource data.
+        fu_rate (float): The follow-up rate for patients.
+        fu_rng (Generator): A random number generator for follow-up calculations.
     """
 
     def __init__(self, json_file_path: str, fu_rate: float, fu_rng: Generator) -> None:
