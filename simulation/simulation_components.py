@@ -237,7 +237,7 @@ class Capacity:
             tuple[list[int], int]: A tuple containing the updated list of patient indices
             and the number of patients who did not attend.
         """
-        num_non_attend = int(len(patients_assigned_slots_indices) * rate)
+        num_non_attend = int(len(patients_assigned_slots_indices) * (rate/100))
         patients_not_attending_indices = rng.choice(
             patients_assigned_slots_indices, num_non_attend, replace=False
         )
