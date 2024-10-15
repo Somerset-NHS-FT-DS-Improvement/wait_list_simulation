@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Callable, Dict, List, Optional
 
 import pandas as pd
@@ -85,4 +86,8 @@ def parameterise_simulation(
 
     G = generate_simulation_graph(cap, get_appointment_duration)
 
-    return sfttoolbox.DES.Simulation(G, pg, length_of_simulation)
+    sim = sfttoolbox.DES.Simulation(
+        G, pg, length_of_simulation, start_day=datetime.now().strftime("%a")
+    )
+
+    return sim

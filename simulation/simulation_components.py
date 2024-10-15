@@ -26,7 +26,9 @@ class PatientGenerator:
         self.id = start_id
         self.generate_new_patients = generate_new_patients
 
-    def generate_patients(self, day_num: int, day: str) -> Generator[pd.Series]:
+    def generate_patients(
+        self, day_num: int, day: str
+    ) -> Generator[pd.Series, None, None]:
         """
         Generates patients for a given day by calling the provided new patient generation function.
         It assigns a unique ID to each patient and prepares the patient data.
@@ -36,7 +38,7 @@ class PatientGenerator:
             day (str): Represents the day in the simulation (not directly used but passed as part of the simulation loop).
 
         Returns:
-            Generator[pd.Series]: A generator that yields individual patient rows.
+            Generator[pd.Series, None, None]: A generator that yields individual patient rows.
         """
         # Emergency and new patients dealt with through the interface with generate_new_patients
         patients = self.generate_new_patients(day_num)
@@ -52,7 +54,7 @@ class PatientGenerator:
 
     def __yield_patient(
         self, iterable_object: pd.core.indexes.base.IndexOpsMixin
-    ) -> Generator[pd.Series]:
+    ) -> Generator[pd.Series, None, None]:
         """
         Private method that yields each patient from the iterable object.
 
@@ -157,7 +159,7 @@ class Capacity:
 
         return True
 
-    def update_day(self, day_num: int, day: str) -> Generator[pd.Series]:
+    def update_day(self, day_num: int, day: str) -> Generator[pd.Series, None, None]:
         """
         Updates the state for the current day, prioritizing the wait list, matching resources,
         handling non-attendance and cancellations, and updating metrics.
@@ -287,7 +289,7 @@ class Capacity:
 
     def __yield_patient(
         self, iterable_object: pd.core.indexes.base.IndexOpsMixin
-    ) -> Generator[pd.Series]:
+    ) -> Generator[pd.Series, None, None]:
         """
         Yields patients from the iterable object.
 
