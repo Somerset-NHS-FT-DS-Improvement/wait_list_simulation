@@ -9,6 +9,8 @@ from ..patient_management.patient_categoriser import patient_categoriser
 from .. import parameterise_simulation
 from .department import MRIDepartment
 
+from sklearn.impute import KNNImputer
+
 
 class MRINewPatients:
     def __init__(
@@ -195,7 +197,7 @@ def setup_mri_simulation(path_to_sql_files: str, dna_rate: float = None, cancell
     rott_dist_params = {"mean": 0, "stddev": 0.0001}
 
     # length_of_simulation
-    forecast_horizon = 5
+    forecast_horizon = 365
 
     # new patient
     mc = parameterise_new_patient_object(
@@ -209,6 +211,11 @@ def setup_mri_simulation(path_to_sql_files: str, dna_rate: float = None, cancell
 
     # initial waiting list
     initial_waiting_list = get_initial_waiting_list(engine, path_to_sql_files)
+
+    knnimpute = KNNImputer(n_neighbors=2)
+    tmp_df = mc.historic_data.select_dtypes([int, float])
+    knnimpute.fit(tmp_df)
+    initial_waiting_list[tmp_df.columns] = knnimpute.transform(initial_waiting_list[tmp_df.columns])
 
     mridept = MRIDepartment(
         f"{path_to_sql_files}/transformed_mri_scanners.json",
