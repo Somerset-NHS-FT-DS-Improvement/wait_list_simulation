@@ -259,6 +259,7 @@ def setup_mri_simulation(
         capacity_seed=capacity_seed,
         dna_seed=dna_seed,
         cancellation_seed=cancellation_seed,
+        max_wait_time=42
     )
 
     return seed, sim, mridept

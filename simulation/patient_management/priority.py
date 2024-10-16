@@ -8,7 +8,7 @@ import pandas as pd
 
 
 class PriorityCalculator:
-    def __init__(self, priority_order: List[str]):
+    def __init__(self, priority_order: List[str], max_wait_time: int = None):
         """
         Initialise the PriorityCalculator with a priority order.
 
@@ -16,6 +16,7 @@ class PriorityCalculator:
         priority_order (List[str]): A list of column names in the order of priority for sorting.
         """
         self.priority_order = priority_order
+        self.max_wait_time = max_wait_time if max_wait_time is not None else np.inf
 
     def calculate_sorted_indices(self, df: pd.DataFrame) -> np.ndarray:
         """
@@ -72,6 +73,8 @@ class PriorityCalculator:
                 )
             ]
         ).T
+
+        min_max_wait_times = np.clip(min_max_wait_times, 0, self.max_wait_time)
 
         return min_max_wait_times
 

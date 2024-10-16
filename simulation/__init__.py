@@ -28,6 +28,7 @@ def parameterise_simulation(
     capacity_seed: Optional[int] = None,
     dna_seed: Optional[int] = None,
     cancellation_seed: Optional[int] = None,
+    max_wait_time: int = None
 ) -> sfttoolbox.DES.Simulation:
     """
     Parameterizes the simulation by setting up the patient generator, priority calculator,
@@ -56,7 +57,7 @@ def parameterise_simulation(
     """
     pg = PatientGenerator(new_patient_function, start_id=initial_waitlist.shape[0])
 
-    pc = PriorityCalculator(priority_order)
+    pc = PriorityCalculator(priority_order, max_wait_time)
 
     rott = RemovalOtherThanTreatment(length_of_simulation, seed=rott_seed)
     if rott_sql_query:
