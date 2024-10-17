@@ -4,19 +4,20 @@ import sqlalchemy as sa
 from itertools import cycle
 
 class OutpatientResourceMatcher:
-    def __init__(self, engine, treatment_function_code):
+    def __init__(self, engine, treatment_function_code, fu_rate=0):
         # Load the resource information
         resource_df = pd.read_sql(f"EXECUTE [wl].[outpatient_clinics] @tfc='{treatment_function_code}'", engine)
 
-        breakpoint()
-
         self.resource = self.__process_capacity(resource_df)
+
+        self.fu_rate = fu_rate
 
     def __process_capacity(self, resource_df):
 
-        resource_df = resource_df.groupby("SessionDate").sum()[["First_nf2f", "First_f2f", "Follow-up_nf2f", "Follow-up_f2f", "unknown", "Total_slots"]]
+        resource_df = resource_df.groupby("SessionDate").sum()[["first", "followup", "unknown", "Total_slots"]]
         resource_df.index = pd.to_datetime(resource_df.index)
         resource_df = resource_df.asfreq('D').fillna(0)
+        resource_df = resource_df.astype(int)
 
         # start a year ago
         resource_df = resource_df.iloc[-366:-1]
@@ -24,18 +25,23 @@ class OutpatientResourceMatcher:
         return cycle(resource_df.iterrows())
 
     def match_resource(self, wait_list):
+        _, num_appts = next(self.resource)
 
-        breakpoint()
+        indices = wait_list[wait_list["appointment_type"] == "first"].iloc[:num_appts["first"]].index.to_list()
+        indices += wait_list[wait_list["appointment_type"] == "followup"].iloc[:num_appts["followup"]].index.to_list()
 
+        indices += wait_list[~wait_list.index.isin(indices)].iloc[:int(num_appts["unknown"])].index.to_list()
 
-        # indices = []
-        # for appointment types in next(self.resource):
-        #  indices += subset wait_list["appointment_type"].iloc[: num of slots].index
+        fu_df = None
+        if self.fu_rate:
+            num_fus = int(len(indices) * self.fu_rate)
+            fu_indices = self.fu_rng.choice(indices, num_fus)
+            fu_df = wait_list.iloc[fu_indices]
+            fu_df["priority"] = "Follow-up"
+            fu_df["appointment_type"] = "followup"
+            fu_df["days waited"] = 0
 
-        # return indices
-
-        # TODO: deal with FU appointments here
-        pass
+        return indices, fu_df
 
 if __name__ == '__main__':
     engine = sa.create_engine(open(f"op_sql/engine.txt", "r").read())
