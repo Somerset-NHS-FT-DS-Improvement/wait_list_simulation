@@ -85,6 +85,9 @@ class MRINewPatients:
                 f"The day number of {day_number} exceeds the original forecast horizon of {self.forecast_horizon}."
             )
 
+        if day_number % 15 == 0:
+            print(f"{day_number} Reached")
+
         ratios = self.category_ratios.iloc[day_number]["cat"]
         patient_indices = []
         for keys, val in ratios.items():
@@ -127,17 +130,21 @@ def parameterise_new_patient_object(
     Returns:
         MRINewPatients: An instance of MRINewPatients class initialized with required data.
     """
+    df = pd.read_sql(
+        open(f"{path_to_sql_files}/MRI_historic_waiting_list.sql", "r").read(),
+        engine,
+    )
+
+    df["priority"] = df["priority"].str.strip()
 
     mc = MRINewPatients(
         pd.read_sql(open(f"{path_to_sql_files}/num_new_refs.sql", "r").read(), engine),
-        pd.read_sql(
-            open(f"{path_to_sql_files}/MRI_historic_waiting_list.sql", "r").read(),
-            engine,
-        ),
+        df,
         forecast_horizon,
         new_patients_seed=new_patient_seed,
         patient_categoriser_seed=patient_categoriser_seed,
     )
+
     return mc
 
 
@@ -154,9 +161,12 @@ def get_initial_waiting_list(
     Returns:
         pd.DataFrame: A DataFrame containing the initial MRI waiting list.
     """
-    return pd.read_sql(
+    df = pd.read_sql(
         open(f"{path_to_sql_files}/MRI_current_waiting_list.sql", "r").read(), engine
     )
+    df["priority"] = df["priority"].str.strip()
+
+    return df
 
 
 def setup_mri_simulation(
@@ -238,9 +248,9 @@ def setup_mri_simulation(
 
     # priority order
     priority_order = [
-        "A&E patients",
-        "inpatients",
         "Breach",
+        "Max wait time",
+        "Breach days",
         "Days waited",
         "Over minimum wait time",
         "Under maximum wait time",

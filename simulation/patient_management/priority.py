@@ -157,7 +157,9 @@ class PriorityCalculator:
         return {
             "A&E patients": ~(df["setting"] == "A&E Patient"),
             "inpatients": ~(df["setting"] == "Inpatient"),
-            "Breach": -(df["days waited"] - min_max_wait_times[:, 1]),
+            "Max wait time": min_max_wait_times[:, 1],
+            "Breach": (df["days waited"] < min_max_wait_times[:, 1]),
+            "Breach days": -(df["days waited"] - min_max_wait_times[:, 1]),
             "Days waited": -min_max_wait_times[:, 1],
             "Over minimum wait time": ~(
                 df["days waited"] > min_max_wait_times[:, 0]

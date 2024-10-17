@@ -62,5 +62,17 @@
     "Elective": [
         21,
         126
+    ],
+    "OnCall": [
+        0,
+        0
+    ],
+    "MDT Allocation": [
+        21,
+        126
+    ],
+    "Triage": [
+        0,
+        0
     ]
 }

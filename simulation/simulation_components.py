@@ -267,6 +267,9 @@ class Capacity:
         self.metrics["median_wait_times_by_priority"].append(
             self.wait_list.groupby("priority")["days waited"].median().to_dict()
         )
+        self.metrics["max_wait_times_by_priority"].append(
+            self.wait_list.groupby("priority")["days waited"].max().to_dict()
+        )
 
     def __calculate_breaches(self) -> dict:
         """
@@ -280,9 +283,10 @@ class Capacity:
                 self.wait_list
             )
         )
+
         return (
-            self.wait_list[self.wait_list["days waited"] > min_max_wait_times[:, 0]]
-            .groupby("priority")["census"]
+            self.wait_list[self.wait_list["days waited"] > min_max_wait_times[:, 1]]
+            .groupby("priority")["id"]
             .count()
             .to_dict()
         )
