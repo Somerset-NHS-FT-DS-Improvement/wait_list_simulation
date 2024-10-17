@@ -16,7 +16,6 @@ def patient_categoriser(fcst_additions, hierarchical_cols, historic_data, seed=N
     Returns:
         Pandas.DataFrame: A dictionary with hierarchical categories as keys and patient counts as values.
     """
-
     rng = np.random.default_rng(seed=seed)
 
     cleaned_data = historic_data.dropna(subset=hierarchical_cols, how="any")
@@ -27,18 +26,16 @@ def patient_categoriser(fcst_additions, hierarchical_cols, historic_data, seed=N
 
     probabilities_df = pd.DataFrame(probabilities, columns=["proba"]).reset_index()
 
-    categoriser_list = []
-    for f in fcst_additions.values:
+    prob_col = probabilities_df.groupby(by=hierarchical_cols).sum(numeric_only=1)[
+        "proba"
+    ]
 
-        prob_col = probabilities_df.groupby(by=hierarchical_cols).sum(numeric_only=1)[
-            "proba"
-        ]
-        forecast_count = rng.choice(prob_col.index, size=f, p=prob_col)
+    categoriser_list = [
+        dict(
+            Counter(
+                rng.choice(prob_col.index, size=f, p=prob_col)
+            )
+        ) for f in fcst_additions.values
+    ]
 
-        categoriser_list.append(dict(Counter(forecast_count)))
-
-    output_categoriser = pd.DataFrame()
-    output_categoriser["ds"] = fcst_additions.index
-    output_categoriser["cat"] = categoriser_list
-
-    return output_categoriser.set_index("ds")
+    return pd.DataFrame([fcst_additions.index, categoriser_list], index=["ds", "cat"]).T.set_index("ds")
