@@ -7,6 +7,7 @@ import sqlalchemy as sa
 from ..patient_management.forecast_arrivals import Forecaster
 from ..patient_management.patient_categoriser import patient_categoriser
 from .. import parameterise_simulation
+from .resource_match import OutpatientResourceMatcher
 
 
 # TODO: This code is almost completely duplicated from mri, should probably be using inheritance here...
@@ -199,7 +200,8 @@ def setup_op_simulation(path_to_sql_files: str, treatment_function_code: int, se
     initial_waiting_list = get_initial_waiting_list(engine, treatment_function_code)
 
     # resource matching
-    resource_matching_function = resource_dummy_function
+    oprm = OutpatientResourceMatcher(engine, 110)
+    resource_matching_function = oprm.match_resource
 
     # priority order
     priority_order = [
@@ -229,13 +231,7 @@ def setup_op_simulation(path_to_sql_files: str, treatment_function_code: int, se
         priority_order,
         dna_rate,
         cancellation_rate,
-        emergency_rate,
-        fu_rate,
         forecast_horizon,
-        dna_rng,
-        cancellation_rng,
-        emergency_rng,
-        fu_rng,
         rott_dist_params=rott_dist_params,
         rott_seed=seeds[6],
         capacity_seed=seeds[7],

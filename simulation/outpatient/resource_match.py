@@ -24,7 +24,7 @@ class OutpatientResourceMatcher:
 
         return cycle(resource_df.iterrows())
 
-    def match_resource(self, wait_list):
+    def match_resource(self, wait_list, day, day_num):
         _, num_appts = next(self.resource)
 
         indices = wait_list[wait_list["appointment_type"] == "first"].iloc[:num_appts["first"]].index.to_list()
