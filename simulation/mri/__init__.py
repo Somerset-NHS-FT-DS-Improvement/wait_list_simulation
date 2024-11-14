@@ -3,7 +3,6 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 import sqlalchemy as sa
-from sklearn.impute import KNNImputer
 
 from .. import parameterise_simulation
 from ..patient_management.forecast_arrivals import Forecaster
@@ -239,13 +238,6 @@ def setup_mri_simulation(
 
     # initial waiting list
     initial_waiting_list = get_initial_waiting_list(engine, path_to_sql_files)
-
-    # knnimpute = KNNImputer(n_neighbors=2)
-    # tmp_df = mc.historic_data.select_dtypes([int, float])
-    # knnimpute.fit(tmp_df)
-    # initial_waiting_list[tmp_df.columns] = knnimpute.transform(
-    #     initial_waiting_list[tmp_df.columns]
-    # )
 
     mridept = MRIDepartment(
         f"{path_to_sql_files}/transformed_mri_scanners.json", fu_rate, fu_rng
