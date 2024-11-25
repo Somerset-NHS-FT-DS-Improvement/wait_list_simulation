@@ -81,6 +81,33 @@ def get_appointment_duration(patient: pd.Series) -> int:
     """
     return patient.duration_mins
 
+class Metrics:
+    def __init__(self):
+        self.metrics = defaultdict(lambda: [])
+
+    def update_metrics(
+            self, capacity_object, num_patients_seen: int, num_dnas: int, num_cancellations: int
+    ) -> None:
+        """
+        Updates the metrics for the current day.
+
+        Args:
+            num_patients_seen (int): The number of patients seen on that day.
+            num_dnas (int): The number of patients who did not attend (DNA).
+            num_cancellations (int): The number of cancellations for that day.
+        """
+        self.metrics["maximum_wait_time"].append(capacity_object.wait_list["days waited"].max())
+        self.metrics["wait_list_length"].append(capacity_object.wait_list.shape[0])
+        self.metrics["num_patients_seen"].append(num_patients_seen)
+        self.metrics["num_dnas"].append(num_dnas)
+        self.metrics["num_cancellations"].append(num_cancellations)
+        # self.metrics["num_breaches"].append(capacity_object.__calculate_breaches())
+        self.metrics["median_wait_times_by_priority"].append(
+            capacity_object.wait_list.groupby("priority")["days waited"].median().to_dict()
+        )
+        self.metrics["max_wait_times_by_priority"].append(
+            capacity_object.wait_list.groupby("priority")["days waited"].max().to_dict()
+        )
 
 class Capacity:
     def __init__(
@@ -94,6 +121,7 @@ class Capacity:
         seed=None,
         dna_seed=None,
         cancellation_seed=None,
+        metrics=Metrics,
     ):
         """
         A class to manage patient capacity and scheduling within a healthcare simulation.
@@ -121,7 +149,7 @@ class Capacity:
             rng (np.random.Generator): RNG for general use.
             dna_rng (np.random.Generator): RNG for DNA calculations.
             cancellation_rng (np.random.Generator): RNG for cancellation calculations.
-            metrics (defaultdict): Metrics collected during simulation.
+            metrics (Metrics): Metrics class, used to track metrics through the simulation.
         """
         self.wait_list = initial_wait_list
         self.prioritisation_calculator = prioritisation_calculator
@@ -139,7 +167,8 @@ class Capacity:
         self.wait_list["id"] = [*range(0, self.wait_list.shape[0])]
         self.wait_list["pathway"] = [[] for _ in range(self.wait_list.shape[0])]
 
-        self.metrics = defaultdict(lambda: [])
+        # Initialise the object
+        self.metrics = metrics()
 
     def get(self, resource: Any, patient: pd.Series, day_num: int, day: Any) -> bool:
         """
@@ -172,6 +201,7 @@ class Capacity:
             Generator[pd.Series, None, None]: A generator that yields patients who are seen on that day.
         """
         # prioritise wait list
+
         indices = self.prioritisation_calculator.calculate_sorted_indices(
             self.wait_list
         )
@@ -213,7 +243,7 @@ class Capacity:
         )
         self.wait_list.drop(index=rott_patients, inplace=True)
 
-        self.__update_metrics(num_patients_seen, num_dnas, num_cancellations)
+        self.metrics.update_metrics(self, num_patients_seen, num_dnas, num_cancellations)
         self.wait_list["days waited"] += 1
 
         iterable_patients = patients_to_move_on.iterrows()
@@ -247,29 +277,6 @@ class Capacity:
 
         return patients_assigned_slots_indices, num_non_attend
 
-    def __update_metrics(
-        self, num_patients_seen: int, num_dnas: int, num_cancellations: int
-    ) -> None:
-        """
-        Updates the metrics for the current day.
-
-        Args:
-            num_patients_seen (int): The number of patients seen on that day.
-            num_dnas (int): The number of patients who did not attend (DNA).
-            num_cancellations (int): The number of cancellations for that day.
-        """
-        self.metrics["maximum_wait_time"].append(self.wait_list["days waited"].max())
-        self.metrics["wait_list_length"].append(self.wait_list.shape[0])
-        self.metrics["num_patients_seen"].append(num_patients_seen)
-        self.metrics["num_dnas"].append(num_dnas)
-        self.metrics["num_cancellations"].append(num_cancellations)
-        self.metrics["num_breaches"].append(self.__calculate_breaches())
-        self.metrics["median_wait_times_by_priority"].append(
-            self.wait_list.groupby("priority")["days waited"].median().to_dict()
-        )
-        self.metrics["max_wait_times_by_priority"].append(
-            self.wait_list.groupby("priority")["days waited"].max().to_dict()
-        )
 
     def __calculate_breaches(self) -> dict:
         """
