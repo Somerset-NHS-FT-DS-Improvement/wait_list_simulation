@@ -15,11 +15,18 @@ class MRIDepartment:
         fu_rng (Generator): A random number generator for follow-up calculations.
     """
 
-    def __init__(self, json_file_path: str, fu_rate: float, fu_rng: Generator) -> None:
+    def __init__(
+        self,
+        json_file_path: str,
+        fu_rate: float,
+        fu_rng: Generator,
+        clinic_utilisation: float = 1,
+    ) -> None:
         with open(json_file_path, "r") as input_json_file:
             self.resources = json.load(input_json_file)
 
         self.fu_rate = fu_rate
+        self.clinic_utilisation = clinic_utilisation  # Should this be a distribution?
         self.fu_rng = fu_rng
 
         self.unutilised_resource_metrics = {}
@@ -99,7 +106,8 @@ class MRIDepartment:
             for slot in day_slots:
                 open_time = self.time_to_minutes(slot["open"])
                 close_time = self.time_to_minutes(slot["close"])
-                available_duration = close_time - open_time
+                available_duration = (close_time - open_time) * self.clinic_utilisation
+
                 label = slot["label"]
 
                 # filter the waiting_list by the type of activity for the resource

@@ -31,11 +31,10 @@ def patient_categoriser(fcst_additions, hierarchical_cols, historic_data, seed=N
     ]
 
     categoriser_list = [
-        dict(
-            Counter(
-                rng.choice(prob_col.index, size=f, p=prob_col)
-            )
-        ) for f in fcst_additions.values
+        dict(Counter(rng.choice(prob_col.index, size=f, p=prob_col)))
+        for f in fcst_additions.values
     ]
 
-    return pd.DataFrame([fcst_additions.index, categoriser_list], index=["ds", "cat"]).T.set_index("ds")
+    return pd.DataFrame(
+        [fcst_additions.index, categoriser_list], index=["ds", "cat"]
+    ).T.set_index("ds")

@@ -81,12 +81,17 @@ def get_appointment_duration(patient: pd.Series) -> int:
     """
     return patient.duration_mins
 
+
 class Metrics:
     def __init__(self):
         self.metrics = defaultdict(lambda: [])
 
     def update_metrics(
-            self, capacity_object, num_patients_seen: int, num_dnas: int, num_cancellations: int
+        self,
+        capacity_object,
+        num_patients_seen: int,
+        num_dnas: int,
+        num_cancellations: int,
     ) -> None:
         """
         Updates the metrics for the current day.
@@ -96,18 +101,23 @@ class Metrics:
             num_dnas (int): The number of patients who did not attend (DNA).
             num_cancellations (int): The number of cancellations for that day.
         """
-        self.metrics["maximum_wait_time"].append(capacity_object.wait_list["days waited"].max())
+        self.metrics["maximum_wait_time"].append(
+            capacity_object.wait_list["days waited"].max()
+        )
         self.metrics["wait_list_length"].append(capacity_object.wait_list.shape[0])
         self.metrics["num_patients_seen"].append(num_patients_seen)
         self.metrics["num_dnas"].append(num_dnas)
         self.metrics["num_cancellations"].append(num_cancellations)
         # self.metrics["num_breaches"].append(capacity_object.__calculate_breaches())
         self.metrics["median_wait_times_by_priority"].append(
-            capacity_object.wait_list.groupby("priority")["days waited"].median().to_dict()
+            capacity_object.wait_list.groupby("priority")["days waited"]
+            .median()
+            .to_dict()
         )
         self.metrics["max_wait_times_by_priority"].append(
             capacity_object.wait_list.groupby("priority")["days waited"].max().to_dict()
         )
+
 
 class Capacity:
     def __init__(
@@ -243,7 +253,9 @@ class Capacity:
         )
         self.wait_list.drop(index=rott_patients, inplace=True)
 
-        self.metrics.update_metrics(self, num_patients_seen, num_dnas, num_cancellations)
+        self.metrics.update_metrics(
+            self, num_patients_seen, num_dnas, num_cancellations
+        )
         self.wait_list["days waited"] += 1
 
         iterable_patients = patients_to_move_on.iterrows()
@@ -267,7 +279,7 @@ class Capacity:
             tuple[list[int], int]: A tuple containing the updated list of patient indices
             and the number of patients who did not attend.
         """
-        num_non_attend = int(len(patients_assigned_slots_indices) * (rate/100))
+        num_non_attend = int(len(patients_assigned_slots_indices) * (rate / 100))
         patients_not_attending_indices = rng.choice(
             patients_assigned_slots_indices, num_non_attend, replace=False
         )
@@ -276,7 +288,6 @@ class Capacity:
             patients_assigned_slots_indices.remove(patient_index)
 
         return patients_assigned_slots_indices, num_non_attend
-
 
     def __calculate_breaches(self) -> dict:
         """

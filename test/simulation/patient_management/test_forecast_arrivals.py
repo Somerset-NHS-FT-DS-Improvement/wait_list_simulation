@@ -24,7 +24,6 @@ def forecaster_instance(sample_data):
 
 
 def test_pre_processing(forecaster_instance):
-
     # Test pre-processing method
     forecaster_instance._pre_processing()
 

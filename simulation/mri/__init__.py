@@ -8,6 +8,7 @@ from .. import parameterise_simulation
 from ..patient_management.forecast_arrivals import Forecaster
 from ..patient_management.patient_categoriser import patient_categoriser
 from .department import MRIDepartment
+from .metrics import MRIMetrics
 
 
 class MRINewPatients:
@@ -129,15 +130,19 @@ def parameterise_new_patient_object(
     Returns:
         MRINewPatients: An instance of MRINewPatients class initialized with required data.
     """
-    df = pd.read_sql(
-        open(f"{path_to_sql_files}/MRI_historic_waiting_list.sql", "r").read(),
-        engine,
+    # df = pd.read_sql(
+    #     open(f"{path_to_sql_files}/MRI_historic_waiting_list.sql", "r").read(),
+    #     engine,
+    # )
+    df = pd.read_csv(
+        "S:\Data Science\sandboxes\chris\Waiting_list_sim\sample_historical_list.csv",
+        index_col=0,
     )
 
     df["priority"] = df["priority"].str.strip()
 
     df["priority"] = df["priority"].fillna("Urgent")
-    df["duration_mins"] = df["duration_mins"].fillna(30)
+    df["duration_mins"] = df["duration_mins_x"].fillna(30)
 
     mc = MRINewPatients(
         pd.read_sql(open(f"{path_to_sql_files}/num_new_refs.sql", "r").read(), engine),
@@ -163,15 +168,18 @@ def get_initial_waiting_list(
     Returns:
         pd.DataFrame: A DataFrame containing the initial MRI waiting list.
     """
-    df = pd.read_sql(
-        open(f"{path_to_sql_files}/MRI_current_waiting_list.sql", "r").read(), engine
+    # df = pd.read_sql(
+    #     open(f"{path_to_sql_files}/MRI_current_waiting_list.sql", "r").read(), engine
+    # )
+    df = pd.read_csv(
+        "S:\Data Science\sandboxes\chris\Waiting_list_sim\sample_current_list.csv",
+        index_col=0,
     )
     df["priority"] = df["priority"].str.strip()
 
     # These values taken from a meeting with the MRI dept
     df["priority"] = df["priority"].fillna("Urgent")
     df["duration_mins"] = df["duration_mins"].fillna(30)
-
 
     return df
 
@@ -181,6 +189,7 @@ def setup_mri_simulation(
     dna_rate: float = None,
     cancellation_rate: float = None,
     fu_rate: float = None,
+    clinic_utilisation: float = 1,
     seed: int = None,
 ) -> tuple[int, "Simulation"]:
     """
@@ -240,7 +249,10 @@ def setup_mri_simulation(
     initial_waiting_list = get_initial_waiting_list(engine, path_to_sql_files)
 
     mridept = MRIDepartment(
-        f"{path_to_sql_files}/transformed_mri_scanners.json", fu_rate, fu_rng
+        f"{path_to_sql_files}/transformed_mri_scanners.json",
+        fu_rate,
+        fu_rng,
+        clinic_utilisation,
     )
 
     # resource matching
@@ -269,7 +281,8 @@ def setup_mri_simulation(
         capacity_seed=capacity_seed,
         dna_seed=dna_seed,
         cancellation_seed=cancellation_seed,
-        max_wait_time=42
+        max_wait_time=42,
+        metrics=MRIMetrics,
     )
 
     return seed, sim, mridept
