@@ -130,13 +130,9 @@ def parameterise_new_patient_object(
     Returns:
         MRINewPatients: An instance of MRINewPatients class initialized with required data.
     """
-    # df = pd.read_sql(
-    #     open(f"{path_to_sql_files}/MRI_historic_waiting_list.sql", "r").read(),
-    #     engine,
-    # )
-    df = pd.read_csv(
-        "S:\Data Science\sandboxes\chris\Waiting_list_sim\sample_historical_list.csv",
-        index_col=0,
+    df = pd.read_sql(
+        open(f"{path_to_sql_files}/MRI_historic_waiting_list.sql", "r").read(),
+        engine,
     )
 
     df["priority"] = df["priority"].str.strip()
@@ -168,12 +164,8 @@ def get_initial_waiting_list(
     Returns:
         pd.DataFrame: A DataFrame containing the initial MRI waiting list.
     """
-    # df = pd.read_sql(
-    #     open(f"{path_to_sql_files}/MRI_current_waiting_list.sql", "r").read(), engine
-    # )
-    df = pd.read_csv(
-        "S:\Data Science\sandboxes\chris\Waiting_list_sim\sample_current_list.csv",
-        index_col=0,
+    df = pd.read_sql(
+        open(f"{path_to_sql_files}/MRI_current_waiting_list.sql", "r").read(), engine
     )
     df["priority"] = df["priority"].str.strip()
 
