@@ -59,6 +59,7 @@ def parameterise_simulation(
     pg = PatientGenerator(new_patient_function, start_id=initial_waitlist.shape[0])
 
     pc = PriorityCalculator(priority_order, max_wait_time)
+    initial_waitlist.loc[:, ["min_wait", "max_wait"]] = pc.calculate_min_and_max_wait_times(initial_waitlist)
 
     rott = RemovalOtherThanTreatment(length_of_simulation, seed=rott_seed)
     if rott_sql_query:

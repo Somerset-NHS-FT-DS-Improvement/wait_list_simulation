@@ -7,6 +7,7 @@ import sqlalchemy as sa
 from .. import parameterise_simulation
 from ..patient_management.forecast_arrivals import Forecaster
 from ..patient_management.patient_categoriser import patient_categoriser
+from ..patient_management.priority import PriorityCalculator
 from .department import MRIDepartment
 from .metrics import MRIMetrics
 
@@ -116,6 +117,7 @@ def parameterise_new_patient_object(
     path_to_sql_files: str,
     new_patient_seed: int = None,
     patient_categoriser_seed: int = None,
+    max_wait_time: int = None
 ) -> "MRINewPatients":
     """
     Creates and returns an instance of the MRINewPatients object.
@@ -138,7 +140,11 @@ def parameterise_new_patient_object(
     df["priority"] = df["priority"].str.strip()
 
     df["priority"] = df["priority"].fillna("Urgent")
-    df["duration_mins"] = df["duration_mins_x"].fillna(30)
+
+    df["duration_mins"] = df["duration_mins"].fillna(30)
+
+    pc = PriorityCalculator([], max_wait_time)
+    df.loc[:, ["min_wait", "max_wait"]] = pc.calculate_min_and_max_wait_times(df)
 
     mc = MRINewPatients(
         pd.read_sql(open(f"{path_to_sql_files}/num_new_refs.sql", "r").read(), engine),
@@ -227,6 +233,8 @@ def setup_mri_simulation(
     # length_of_simulation
     forecast_horizon = 365
 
+    max_wait_time = 42
+
     # new patient
     mc = parameterise_new_patient_object(
         engine,
@@ -234,6 +242,7 @@ def setup_mri_simulation(
         path_to_sql_files,
         new_patient_seed=new_patient_seed,
         patient_categoriser_seed=patient_categoriser_seed,
+        max_wait_time=max_wait_time,
     )
     new_patient_function = mc.generate_new_patients
 
@@ -273,7 +282,7 @@ def setup_mri_simulation(
         capacity_seed=capacity_seed,
         dna_seed=dna_seed,
         cancellation_seed=cancellation_seed,
-        max_wait_time=42,
+        max_wait_time=max_wait_time,
         metrics=MRIMetrics,
     )
 

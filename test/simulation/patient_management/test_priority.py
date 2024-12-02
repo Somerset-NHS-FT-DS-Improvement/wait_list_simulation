@@ -12,8 +12,8 @@ from simulation.patient_management.priority import PriorityCalculator
 def df():
     """Fixture that returns a sample DataFrame with missing required columns."""
     return pd.DataFrame(
-        columns=["setting", "priority", "days waited"],
-        data=[["Inpatient", "Urgent", 10], ["Outpatient", "Routine", 30]],
+        columns=["setting", "priority", "days waited", "min_wait", "max_wait"],
+        data=[["Inpatient", "Urgent", 10, 7, 14], ["Outpatient", "Routine", 30, 21, 126]],
     )
 
 
