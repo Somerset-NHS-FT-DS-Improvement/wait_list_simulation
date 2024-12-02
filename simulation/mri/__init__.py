@@ -3,12 +3,12 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 import sqlalchemy as sa
-from sklearn.impute import KNNImputer
 
 from .. import parameterise_simulation
 from ..patient_management.forecast_arrivals import Forecaster
 from ..patient_management.patient_categoriser import patient_categoriser
 from .department import MRIDepartment
+from .metrics import MRIMetrics
 
 
 class MRINewPatients:
@@ -137,6 +137,9 @@ def parameterise_new_patient_object(
 
     df["priority"] = df["priority"].str.strip()
 
+    df["priority"] = df["priority"].fillna("Urgent")
+    df["duration_mins"] = df["duration_mins_x"].fillna(30)
+
     mc = MRINewPatients(
         pd.read_sql(open(f"{path_to_sql_files}/num_new_refs.sql", "r").read(), engine),
         df,
@@ -166,6 +169,10 @@ def get_initial_waiting_list(
     )
     df["priority"] = df["priority"].str.strip()
 
+    # These values taken from a meeting with the MRI dept
+    df["priority"] = df["priority"].fillna("Urgent")
+    df["duration_mins"] = df["duration_mins"].fillna(30)
+
     return df
 
 
@@ -174,6 +181,7 @@ def setup_mri_simulation(
     dna_rate: float = None,
     cancellation_rate: float = None,
     fu_rate: float = None,
+    clinic_utilisation: float = 1,
     seed: int = None,
 ) -> tuple[int, "Simulation"]:
     """
@@ -232,15 +240,11 @@ def setup_mri_simulation(
     # initial waiting list
     initial_waiting_list = get_initial_waiting_list(engine, path_to_sql_files)
 
-    knnimpute = KNNImputer(n_neighbors=2)
-    tmp_df = mc.historic_data.select_dtypes([int, float])
-    knnimpute.fit(tmp_df)
-    initial_waiting_list[tmp_df.columns] = knnimpute.transform(
-        initial_waiting_list[tmp_df.columns]
-    )
-
     mridept = MRIDepartment(
-        f"{path_to_sql_files}/transformed_mri_scanners.json", fu_rate, fu_rng
+        f"{path_to_sql_files}/transformed_mri_scanners.json",
+        fu_rate,
+        fu_rng,
+        clinic_utilisation,
     )
 
     # resource matching
@@ -269,7 +273,8 @@ def setup_mri_simulation(
         capacity_seed=capacity_seed,
         dna_seed=dna_seed,
         cancellation_seed=cancellation_seed,
-        max_wait_time=42
+        max_wait_time=42,
+        metrics=MRIMetrics,
     )
 
     return seed, sim, mridept

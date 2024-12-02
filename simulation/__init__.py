@@ -7,7 +7,7 @@ from sqlalchemy.engine import Engine
 
 from .patient_management.priority import PriorityCalculator
 from .patient_management.rott import RemovalOtherThanTreatment
-from .simulation_components import (Capacity, PatientGenerator,
+from .simulation_components import (Capacity, Metrics, PatientGenerator,
                                     generate_simulation_graph,
                                     get_appointment_duration)
 
@@ -28,7 +28,8 @@ def parameterise_simulation(
     capacity_seed: Optional[int] = None,
     dna_seed: Optional[int] = None,
     cancellation_seed: Optional[int] = None,
-    max_wait_time: int = None
+    max_wait_time: int = None,
+    metrics=Metrics,
 ) -> sfttoolbox.DES.Simulation:
     """
     Parameterizes the simulation by setting up the patient generator, priority calculator,
@@ -83,6 +84,7 @@ def parameterise_simulation(
         seed=capacity_seed,
         dna_seed=dna_seed,
         cancellation_seed=cancellation_seed,
+        metrics=metrics,
     )
 
     G = generate_simulation_graph(cap, get_appointment_duration)
