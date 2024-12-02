@@ -36,13 +36,11 @@ class PriorityCalculator:
         AssertionError: If the required columns 'priority', 'setting', and 'days waited' are not present in the DataFrame.
         """
         assert (
-            len(set(df.columns) - {"priority", "setting", "days waited"})
-            == len(df.columns) - 3
-        ), f"The columns priority, setting and days waited are required and not found in {df.columns}"
+            len(set(df.columns) - {"priority", "setting", "days waited", "min_wait", "max_wait"})
+            == len(df.columns) - 5
+        ), f"The columns priority, setting, days waited, min_wait and max_wait are required and not found in {df.columns}"
 
-        min_max_wait_times = self.calculate_min_and_max_wait_times(df)
-
-        priority_mapping = self.__get_priority_mapping(df, min_max_wait_times)
+        priority_mapping = self.__get_priority_mapping(df)
         sorted_indices = self.calculate_wait_list_order(priority_mapping)
 
         return sorted_indices
@@ -142,7 +140,7 @@ class PriorityCalculator:
 
     @staticmethod
     def __get_priority_mapping(
-        df: pd.DataFrame, min_max_wait_times: np.ndarray
+        df: pd.DataFrame
     ) -> Dict[str, np.ndarray]:
         """
         Create a priority mapping for sorting based on specific conditions.
@@ -157,12 +155,12 @@ class PriorityCalculator:
         return {
             "A&E patients": ~(df["setting"] == "A&E Patient"),
             "inpatients": ~(df["setting"] == "Inpatient"),
-            "Max wait time": min_max_wait_times[:, 1],
-            "Breach": (df["days waited"] < min_max_wait_times[:, 1]),
-            "Breach days": -(df["days waited"] - min_max_wait_times[:, 1]),
-            "Days waited": -min_max_wait_times[:, 1],
+            "Max wait time": df["max_wait"],
+            "Breach": (df["days waited"] < df["max_wait"]),
+            "Breach days": -(df["days waited"] - df["max_wait"]),
+            "Days waited": -df["max_wait"],
             "Over minimum wait time": ~(
-                df["days waited"] > min_max_wait_times[:, 0]
+                df["days waited"] > df["min_wait"]
             ),  # The inversion here because False will be sorted before True (0 comes before 1)
-            "Under maximum wait time": ~(df["days waited"] > min_max_wait_times[:, 1]),
+            "Under maximum wait time": ~(df["days waited"] > df["max_wait"]),
         }
