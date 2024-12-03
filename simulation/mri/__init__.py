@@ -90,17 +90,13 @@ class MRINewPatients:
             print(f"{day_number} Reached")
 
         ratios = self.category_ratios.iloc[day_number]["cat"]
-        patient_indices = []
-        for keys, val in ratios.items():
-            matching_vals = np.logical_and.reduce(
-                [
-                    (self.historic_data[col] == key)
-                    for col, key in zip(self.category_columns, keys)
-                ]
-            )
-            patient_indices.append(
-                self.rng.choice(self.historic_data[matching_vals].index, val)
-            )
+
+        patient_indices = [
+            self.rng.choice(self.historic_data[
+                (self.historic_data[self.category_columns] == keys).all(axis=1)
+            ].index, val)
+            for keys, val in ratios.items()
+        ]
 
         if len(patient_indices) == 0:
             df = pd.DataFrame(columns=self.historic_data.columns)
