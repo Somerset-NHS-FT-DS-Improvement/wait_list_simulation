@@ -4,21 +4,21 @@ import numpy as np
 import pandas as pd
 import sqlalchemy as sa
 
+from .. import parameterise_simulation
 from ..patient_management.forecast_arrivals import Forecaster
 from ..patient_management.patient_categoriser import patient_categoriser
-from .. import parameterise_simulation
 from .resource_match import OutpatientResourceMatcher
 
 
 # TODO: This code is almost completely duplicated from mri, should probably be using inheritance here...
 class NewOutpatients:
     def __init__(
-            self,
-            historic_num_refs: pd.Series,
-            historic_data: pd.DataFrame,
-            forecast_horizon: int,
-            new_patients_seed: Optional[int] = None,
-            patient_categoriser_seed: Optional[int] = None,
+        self,
+        historic_num_refs: pd.Series,
+        historic_data: pd.DataFrame,
+        forecast_horizon: int,
+        new_patients_seed: Optional[int] = None,
+        patient_categoriser_seed: Optional[int] = None,
     ) -> None:
         """
         Initialise the NewOutpatients class.
@@ -41,11 +41,11 @@ class NewOutpatients:
         )
 
     def __generate_categories(
-            self,
-            historic_num_refs: pd.Series,
-            historic_data: pd.DataFrame,
-            forecast_horizon: int,
-            seed: Optional[int],
+        self,
+        historic_num_refs: pd.Series,
+        historic_data: pd.DataFrame,
+        forecast_horizon: int,
+        seed: Optional[int],
     ) -> pd.DataFrame:
         """
         Generate category ratios for patient distribution using historical data and forecasting.
@@ -110,12 +110,12 @@ class NewOutpatients:
 
 
 def parameterise_new_patient_object(
-        engine: sa.engine.Engine,
-        forecast_horizon: int,
-        treatment_function_code: int,
-        new_patient_seed: int = None,
-        patient_categoriser_seed: int = None,
-        site: str = "mph"
+    engine: sa.engine.Engine,
+    forecast_horizon: int,
+    treatment_function_code: int,
+    new_patient_seed: int = None,
+    patient_categoriser_seed: int = None,
+    site: str = "mph",
 ) -> "NewOutpatients":
     """
     Creates and returns an instance of the NewOutpatients object.
@@ -132,8 +132,14 @@ def parameterise_new_patient_object(
     """
 
     mc = NewOutpatients(
-        pd.read_sql(f"Execute [wl].[opa_admissions] @site={site}, @tfc='{treatment_function_code}'", engine),
-        pd.read_sql(f"Execute [wl].[current_opa_waiting_list] @site={site}, @tfc='{treatment_function_code}'", engine),
+        pd.read_sql(
+            f"Execute [wl].[opa_admissions] @site={site}, @tfc='{treatment_function_code}'",
+            engine,
+        ),
+        pd.read_sql(
+            f"Execute [wl].[current_opa_waiting_list] @site={site}, @tfc='{treatment_function_code}'",
+            engine,
+        ),
         # TODO: Update this!
         # pd.read_sql(
         #     open(f"{path_to_sql_files}/MRI_historic_waiting_list.sql", "r").read(),
@@ -147,7 +153,7 @@ def parameterise_new_patient_object(
 
 
 def get_initial_waiting_list(
-        engine: sa.engine.Engine, treatment_function_code: int, site: str = None
+    engine: sa.engine.Engine, treatment_function_code: int, site: str = None
 ) -> pd.DataFrame:
     """
     Retrieves the initial OP waiting list from the database.
@@ -158,7 +164,10 @@ def get_initial_waiting_list(
     Returns:
         pd.DataFrame: A DataFrame containing the initial OP waiting list.
     """
-    return pd.read_sql(f"Execute [wl].[current_opa_waiting_list] @site={site}, @tfc='{treatment_function_code}'", engine)
+    return pd.read_sql(
+        f"Execute [wl].[current_opa_waiting_list] @site={site}, @tfc='{treatment_function_code}'",
+        engine,
+    )
 
 
 def resource_dummy_function(in_list):
@@ -166,7 +175,9 @@ def resource_dummy_function(in_list):
     return in_list.iloc[:num_patients_to_remove].index
 
 
-def setup_op_simulation(path_to_sql_files: str, treatment_function_code: int, seed: int = None) -> tuple[int, "Simulation"]:
+def setup_op_simulation(
+    path_to_sql_files: str, treatment_function_code: int, seed: int = None
+) -> tuple[int, "Simulation"]:
     """
     Sets up and initializes the OP simulation.
 

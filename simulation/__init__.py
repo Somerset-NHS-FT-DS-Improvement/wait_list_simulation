@@ -7,9 +7,13 @@ from sqlalchemy.engine import Engine
 
 from .patient_management.priority import PriorityCalculator
 from .patient_management.rott import RemovalOtherThanTreatment
-from .simulation_components import (Capacity, Metrics, PatientGenerator,
-                                    generate_simulation_graph,
-                                    get_appointment_duration)
+from .simulation_components import (
+    Capacity,
+    Metrics,
+    PatientGenerator,
+    generate_simulation_graph,
+    get_appointment_duration,
+)
 
 __all__ = ["parameterise_simulation"]
 
@@ -59,7 +63,9 @@ def parameterise_simulation(
     pg = PatientGenerator(new_patient_function, start_id=initial_waitlist.shape[0])
 
     pc = PriorityCalculator(priority_order, max_wait_time)
-    initial_waitlist.loc[:, ["min_wait", "max_wait"]] = pc.calculate_min_and_max_wait_times(initial_waitlist)
+    initial_waitlist.loc[:, ["min_wait", "max_wait"]] = (
+        pc.calculate_min_and_max_wait_times(initial_waitlist)
+    )
 
     rott = RemovalOtherThanTreatment(length_of_simulation, seed=rott_seed)
     if rott_sql_query:

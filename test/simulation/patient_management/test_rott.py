@@ -3,7 +3,6 @@ from unittest.mock import MagicMock
 import numpy as np
 import pandas as pd
 import pytest
-
 from simulation.patient_management.rott import RemovalOtherThanTreatment
 
 
