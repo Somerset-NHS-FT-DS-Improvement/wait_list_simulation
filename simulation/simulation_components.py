@@ -161,6 +161,7 @@ class Capacity:
             cancellation_rng (np.random.Generator): RNG for cancellation calculations.
             metrics (Metrics): Metrics class, used to track metrics through the simulation.
         """
+        self.wait_list_holder = []
         self.wait_list = initial_wait_list
         self.prioritisation_calculator = prioritisation_calculator
         self.match_resource = match_resource
@@ -193,8 +194,9 @@ class Capacity:
         Returns:
             bool: Always returns True upon successfully adding the patient.
         """
-        self.wait_list = pd.concat([self.wait_list, patient.to_frame().T])
-        self.wait_list.reset_index(drop=True, inplace=True)
+        self.wait_list_holder.append(patient)
+        # self.wait_list = pd.concat([self.wait_list, patient.to_frame().T])
+        # self.wait_list.reset_index(drop=True, inplace=True)
 
         return True
 
@@ -210,8 +212,9 @@ class Capacity:
         Returns:
             Generator[pd.Series, None, None]: A generator that yields patients who are seen on that day.
         """
+        self.wait_list = pd.concat([self.wait_list, pd.DataFrame(self.wait_list_holder)]).reset_index(drop=True)
+        self.wait_list_holder = []
         # prioritise wait list
-
         indices = self.prioritisation_calculator.calculate_sorted_indices(
             self.wait_list
         )
