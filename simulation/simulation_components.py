@@ -195,8 +195,6 @@ class Capacity:
             bool: Always returns True upon successfully adding the patient.
         """
         self.wait_list_holder.append(patient)
-        # self.wait_list = pd.concat([self.wait_list, patient.to_frame().T])
-        # self.wait_list.reset_index(drop=True, inplace=True)
 
         return True
 
