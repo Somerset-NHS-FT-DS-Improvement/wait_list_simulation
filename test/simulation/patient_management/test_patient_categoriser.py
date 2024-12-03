@@ -3,10 +3,8 @@ from collections import Counter
 import numpy as np
 import pandas as pd
 import pytest
-
 from simulation.patient_management.forecast_arrivals import Forecaster
-from simulation.patient_management.patient_categoriser import \
-    patient_categoriser
+from simulation.patient_management.patient_categoriser import patient_categoriser
 
 
 # Sample input data for the tests

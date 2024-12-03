@@ -117,7 +117,7 @@ def parameterise_new_patient_object(
     path_to_sql_files: str,
     new_patient_seed: int = None,
     patient_categoriser_seed: int = None,
-    max_wait_time: int = None
+    max_wait_time: int = None,
 ) -> "MRINewPatients":
     """
     Creates and returns an instance of the MRINewPatients object.

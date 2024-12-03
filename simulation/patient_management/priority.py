@@ -36,7 +36,10 @@ class PriorityCalculator:
         AssertionError: If the required columns 'priority', 'setting', and 'days waited' are not present in the DataFrame.
         """
         assert (
-            len(set(df.columns) - {"priority", "setting", "days waited", "min_wait", "max_wait"})
+            len(
+                set(df.columns)
+                - {"priority", "setting", "days waited", "min_wait", "max_wait"}
+            )
             == len(df.columns) - 5
         ), f"The columns priority, setting, days waited, min_wait and max_wait are required and not found in {df.columns}"
 
@@ -139,9 +142,7 @@ class PriorityCalculator:
         )  # reverse the order so that the final sort is the last one applied
 
     @staticmethod
-    def __get_priority_mapping(
-        df: pd.DataFrame
-    ) -> Dict[str, np.ndarray]:
+    def __get_priority_mapping(df: pd.DataFrame) -> Dict[str, np.ndarray]:
         """
         Create a priority mapping for sorting based on specific conditions.
 

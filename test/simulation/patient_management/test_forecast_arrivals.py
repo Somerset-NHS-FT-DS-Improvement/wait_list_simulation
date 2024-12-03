@@ -2,9 +2,8 @@ import numpy as np
 import pandas as pd
 import pytest
 from holidays import UK
-from sktime.forecasting.statsforecast import StatsForecastAutoARIMA
-
 from simulation.patient_management.forecast_arrivals import Forecaster
+from sktime.forecasting.statsforecast import StatsForecastAutoARIMA
 
 
 # Sample test data
