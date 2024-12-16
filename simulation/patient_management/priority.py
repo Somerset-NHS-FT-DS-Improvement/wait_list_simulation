@@ -154,6 +154,9 @@ class PriorityCalculator:
         Dict[str, np.ndarray]: A dictionary where keys are priority criteria and values are arrays used for sorting.
         """
         return {
+            # TODO these top 2 should be moved out to MRI specific code...
+            "MRI days until due": -(df["days waited"]-df["days_until_due"]).fillna(0),
+            "MRI breaches": ~((df["days waited"] - df["days_until_due"].fillna(0)) > 42),
             "A&E patients": ~(df["setting"] == "A&E Patient"),
             "inpatients": ~(df["setting"] == "Inpatient"),
             "Max wait time": df["max_wait"],

@@ -255,8 +255,9 @@ def setup_mri_simulation(
     # resource matching
     resource_matching_function = mridept.match_mri_resource
 
-    # priority order
     priority_order = [
+        "MRI breaches",
+        "MRI days until due",
         "Breach",
         "Max wait time",
         "Breach days",
