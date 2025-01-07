@@ -84,7 +84,10 @@ def get_appointment_duration(patient: pd.Series) -> int:
 
 class Metrics:
     def __init__(self):
-        self.metrics = defaultdict(lambda: [])
+        self.metrics = defaultdict(self._default_entry)
+
+    def _default_entry(self):
+        return []
 
     def update_metrics(
         self,
@@ -287,6 +290,9 @@ class Capacity:
 
         for patient_index in patients_not_attending_indices:
             patients_assigned_slots_indices.remove(patient_index)
+
+            self.wait_list.loc[patient_index, "priority"] = "DNA/Cancellation"
+            self.wait_list.loc[patient_index, "days waited"] = 0
 
         return patients_assigned_slots_indices, num_non_attend
 
