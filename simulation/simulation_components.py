@@ -213,7 +213,9 @@ class Capacity:
         Returns:
             Generator[pd.Series, None, None]: A generator that yields patients who are seen on that day.
         """
-        self.wait_list = pd.concat([self.wait_list, pd.DataFrame(self.wait_list_holder)]).reset_index(drop=True)
+        self.wait_list = pd.concat(
+            [self.wait_list, pd.DataFrame(self.wait_list_holder)]
+        ).reset_index(drop=True)
         self.wait_list_holder = []
         # prioritise wait list
         indices = self.prioritisation_calculator.calculate_sorted_indices(

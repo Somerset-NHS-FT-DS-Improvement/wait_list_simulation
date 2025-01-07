@@ -7,13 +7,9 @@ from sqlalchemy.engine import Engine
 
 from .patient_management.priority import PriorityCalculator
 from .patient_management.rott import RemovalOtherThanTreatment
-from .simulation_components import (
-    Capacity,
-    Metrics,
-    PatientGenerator,
-    generate_simulation_graph,
-    get_appointment_duration,
-)
+from .simulation_components import (Capacity, Metrics, PatientGenerator,
+                                    generate_simulation_graph,
+                                    get_appointment_duration)
 
 __all__ = ["parameterise_simulation"]
 

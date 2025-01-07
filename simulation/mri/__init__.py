@@ -110,33 +110,49 @@ class MRINewPatients:
 
         return df
 
+
 def process_data(data, max_wait_time):
     data.historic_waiting_list
 
-    data.historic_waiting_list["priority"] = data.historic_waiting_list["priority"].str.strip()
+    data.historic_waiting_list["priority"] = data.historic_waiting_list[
+        "priority"
+    ].str.strip()
 
-    data.historic_waiting_list["priority"] = data.historic_waiting_list["priority"].fillna("Urgent")
+    data.historic_waiting_list["priority"] = data.historic_waiting_list[
+        "priority"
+    ].fillna("Urgent")
 
-    data.historic_waiting_list["duration_mins"] = data.historic_waiting_list["duration_mins"].fillna(30)
+    data.historic_waiting_list["duration_mins"] = data.historic_waiting_list[
+        "duration_mins"
+    ].fillna(30)
 
     pc = PriorityCalculator([], max_wait_time)
-    data.historic_waiting_list.loc[:, ["min_wait", "max_wait"]] = pc.calculate_min_and_max_wait_times(data.historic_waiting_list)
+    data.historic_waiting_list.loc[:, ["min_wait", "max_wait"]] = (
+        pc.calculate_min_and_max_wait_times(data.historic_waiting_list)
+    )
 
-    data.current_waiting_list["priority"] = data.current_waiting_list["priority"].str.strip()
+    data.current_waiting_list["priority"] = data.current_waiting_list[
+        "priority"
+    ].str.strip()
 
     # These values taken from a meeting with the MRI dept
-    data.current_waiting_list["priority"] = data.current_waiting_list["priority"].fillna("Urgent")
-    data.current_waiting_list["duration_mins"] = data.current_waiting_list["duration_mins"].fillna(30)
+    data.current_waiting_list["priority"] = data.current_waiting_list[
+        "priority"
+    ].fillna("Urgent")
+    data.current_waiting_list["duration_mins"] = data.current_waiting_list[
+        "duration_mins"
+    ].fillna(30)
 
 
 class MriSimulation:
-    def __init__(self,
-                 path_to_sql_queries: str,
-                 dna_rate: float = None,
-                 cancellation_rate: float = None,
-                 fu_rate: float = None,
-                 clinic_utilisation: float = 1,
-        )-> tuple[int, "Simulation"]:
+    def __init__(
+        self,
+        path_to_sql_queries: str,
+        dna_rate: float = None,
+        cancellation_rate: float = None,
+        fu_rate: float = None,
+        clinic_utilisation: float = 1,
+    ) -> tuple[int, "Simulation"]:
         self.forecast_horizon = 365
         self.max_wait_time = 42
         self.clinic_utilisation = clinic_utilisation
@@ -170,7 +186,11 @@ class MriSimulation:
         process_data(self.mri_data, self.max_wait_time)
 
         self.dna_rate = self.mri_data.dna_rate if dna_rate is None else dna_rate
-        self.cancellation_rate = self.mri_data.cancellation_rate if cancellation_rate is None else cancellation_rate
+        self.cancellation_rate = (
+            self.mri_data.cancellation_rate
+            if cancellation_rate is None
+            else cancellation_rate
+        )
         # TODO: put a SQL query here!
         self.fu_rate = 0 if fu_rate is None else fu_rate
         emergency_rate = 0
