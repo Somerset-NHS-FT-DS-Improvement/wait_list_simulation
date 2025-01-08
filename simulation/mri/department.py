@@ -1,5 +1,5 @@
 import json
-from typing import List
+from typing import Any, Dict, List, Tuple
 
 import pandas as pd
 from numpy.random import Generator
@@ -12,7 +12,8 @@ class MRIDepartment:
     Args:
         json_file_path (str): Path to the JSON file containing resource data.
         fu_rate (float): The follow-up rate for patients.
-        fu_rng (Generator): A random number generator for follow-up calculations.
+        fu_rng (np.random.Generator): A random number generator for follow-up calculations.
+        clinic_utilisation (float): Clinic utilisation rate. Default is 1.
     """
 
     def __init__(
@@ -57,19 +58,21 @@ class MRIDepartment:
         """
         return f"{minutes // 60:02d}:{minutes % 60:02d}"
 
-    def __update_metrics(self, time_not_utilised: List[dict], day_num: int) -> None:
+    def __update_metrics(
+        self, time_not_utilised: List[Dict[str, Any]], day_num: int
+    ) -> None:
         """
         Updates the unutilised resource metrics with the newly calculated unused time for slots.
 
         Args:
-            time_not_utilised (list): List of dictionaries containing details of unused resource time.
+            time_not_utilised (List[Dict[str, Any]]): List of dictionaries containing details of unused resource time.
             day_num (int): Simulation day number.
         """
         self.unutilised_resource_metrics[day_num] = time_not_utilised
 
     def match_mri_resource(
         self, waiting_list_df: pd.DataFrame, day: str, day_num: int
-    ) -> List[int]:
+    ) -> Tuple[List[int], pd.DataFrame]:
         """
         Matches patients from the waiting list to available resource slots for a given day.
         Tracks patients who are seen, resource time not utilised.
@@ -80,12 +83,8 @@ class MRIDepartment:
             day_num (int): Simulation day number, used to track the scheduling process across different simulation days.
 
         Returns:
-            list: Indices of patients who were successfully matched and scheduled for slots.
-
-        Additional Details:
-            - Unused resource time ('not_utilised_mins') is tracked for each slot.
-            - The total unused time across multiple runs is stored in `self.unutilised_resource_metrics` for later analysis.
-            - Each resource's daily schedule is matched based on the type of activity and available time slots.
+            Tuple[List[int], pd.DataFrame]: Indices of patients who were successfully matched and scheduled for slots,
+            and DataFrame of follow-up patients.
         """
         time_not_utilised = []
         matched_indices = set()

@@ -1,8 +1,7 @@
-from typing import Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-import sqlalchemy as sa
 
 from .. import parameterise_simulation
 from ..patient_management import Data
@@ -111,9 +110,14 @@ class MRINewPatients:
         return df
 
 
-def process_data(data, max_wait_time):
-    data.historic_waiting_list
+def process_data(data: Data, max_wait_time: int) -> None:
+    """
+    Process the data by cleaning and filling missing values, and calculating wait times.
 
+    Args:
+        data (Data): The data object containing historic and current waiting lists.
+        max_wait_time (int): The maximum wait time to be used in the priority calculation.
+    """
     data.historic_waiting_list["priority"] = data.historic_waiting_list[
         "priority"
     ].str.strip()
@@ -126,6 +130,7 @@ def process_data(data, max_wait_time):
         "duration_mins"
     ].fillna(30)
 
+    # Doing this here means it's not required each time new patients are selected
     pc = PriorityCalculator([], max_wait_time)
     data.historic_waiting_list.loc[:, ["min_wait", "max_wait"]] = (
         pc.calculate_min_and_max_wait_times(data.historic_waiting_list)
@@ -148,11 +153,24 @@ class MriSimulation:
     def __init__(
         self,
         path_to_sql_queries: str,
-        dna_rate: float = None,
-        cancellation_rate: float = None,
-        fu_rate: float = None,
+        dna_rate: Optional[float] = None,
+        cancellation_rate: Optional[float] = None,
+        fu_rate: Optional[float] = None,
         clinic_utilisation: float = 1,
-    ) -> tuple[int, "Simulation"]:
+    ) -> Tuple[int, "Simulation"]:
+        """
+        Initialise the MriSimulation class.
+
+        Args:
+            path_to_sql_queries (str): Path to the SQL queries.
+            dna_rate (Optional[float]): DNA rate. Default is None.
+            cancellation_rate (Optional[float]): Cancellation rate. Default is None.
+            fu_rate (Optional[float]): Follow-up rate. Default is None.
+            clinic_utilisation (float): Clinic utilisation rate. Default is 1.
+
+        Returns:
+            Tuple[int, "Simulation"]: A tuple containing the seed and the simulation object.
+        """
         self.forecast_horizon = 365
         self.max_wait_time = 42
         self.clinic_utilisation = clinic_utilisation
@@ -197,7 +215,18 @@ class MriSimulation:
         # TODO: parameterise this from the sql
         self.rott_dist_params = {"mean": 0, "stddev": 0.0001}
 
-    def parameterise_simulation(self, seed=None):
+    def parameterise_simulation(
+        self, seed: Optional[int] = None
+    ) -> Tuple[int, "Simulation", MRIDepartment]:
+        """
+        Parameterise the simulation with the given seed.
+
+        Args:
+            seed (Optional[int]): Seed for the random number generator. Default is None.
+
+        Returns:
+            Tuple[int, "Simulation", Any]: A tuple containing the seed, the simulation object, and the MRI department object.
+        """
         seed_gen = np.random.SeedSequence(seed)
         seed = seed_gen.entropy
 
@@ -248,14 +277,24 @@ class MriSimulation:
             cancellation_seed=cancellation_seed,
             max_wait_time=self.max_wait_time,
             metrics=MRIMetrics,
-            exta_priorities=_extra_priorities,
+            exta_priorities=self._extra_priorities,
         )
 
         return seed, sim, mridept
 
+    def _extra_priorities(self, df: pd.DataFrame) -> dict[str, List[int]]:
+        """
+        Calculate extra priorities for the MRI simulation.
 
-def _extra_priorities(df):
-    return {
-        "MRI days until due": -(df["days waited"] - df["days_until_due"]).fillna(0),
-        "MRI breaches": ~((df["days waited"] - df["days_until_due"].fillna(0)) > 42),
-    }
+        Args:
+            df (pd.DataFrame): Dataframe containing patient data.
+
+        Returns:
+            dict[str, Any]: A dictionary containing extra priorities.
+        """
+        return {
+            "MRI days until due": -(df["days waited"] - df["days_until_due"]).fillna(0),
+            "MRI breaches": ~(
+                (df["days waited"] - df["days_until_due"].fillna(0)) > 42
+            ),
+        }

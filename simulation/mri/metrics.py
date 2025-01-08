@@ -1,19 +1,31 @@
-from collections import defaultdict
+from typing import Any
 
 from ..simulation_components import Metrics
 
 
 class MRIMetrics(Metrics):
-    def __init__(self):
+    def __init__(self) -> None:
+        """
+        Initialise the MRIMetrics Class
+        """
         super().__init__()
 
     def update_metrics(
         self,
-        capacity_object,
+        capacity_object: Any,
         num_patients_seen: int,
         num_dnas: int,
         num_cancellations: int,
     ) -> None:
+        """
+        Update the metrics for the MRI department.
+
+        Args:
+            capacity_object (Any): The capacity object containing the wait list.
+            num_patients_seen (int): Number of patients seen.
+            num_dnas (int): Number of patients who did not attend (DNA).
+            num_cancellations (int): Number of cancellations.
+        """
         super().update_metrics(
             capacity_object, num_patients_seen, num_dnas, num_cancellations
         )

@@ -43,9 +43,12 @@ scanners are utilised in the form:
 The simulation can be run with simple python code:
 
 ```python
-from simulation.mri import setup_mri_simulation
+from simulation.mri import MriSimulation
 
-seed, sim, mridept = setup_mri_simulation("mri_sql", fu_rate=0)
+seed, sim, mridept = MriSimulation(
+    path_to_sql_queries="mri_sql", 
+    fu_rate=0,
+)
 
 sim.run_simulation()
 
