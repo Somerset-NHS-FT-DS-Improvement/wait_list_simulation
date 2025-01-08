@@ -91,6 +91,7 @@ def test_calculate_sorted_indices(pc, df):
 
 
 def test_extra_priorities(pc, df):
+    """Test adding in custom priorities."""
     pc.priority_order = ["Made up"] + pc.priority_order
     extra_prios = lambda df: {
         "Made up": df.sort_values(by="setting", ascending=False).index
