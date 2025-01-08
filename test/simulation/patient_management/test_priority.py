@@ -90,5 +90,15 @@ def test_calculate_sorted_indices(pc, df):
     assert pc.calculate_sorted_indices(df).tolist() == [0, 1]
 
 
+def test_extra_priorities(pc, df):
+    pc.priority_order = ["Made up"] + pc.priority_order
+    extra_prios = lambda df: {
+        "Made up": df.sort_values(by="setting", ascending=False).index
+    }
+    pc.extra_priorities = extra_prios
+
+    assert pc.calculate_sorted_indices(df).tolist() == [1, 0]
+
+
 if __name__ == "__main__":
     pytest.main()

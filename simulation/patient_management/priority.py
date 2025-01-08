@@ -1,14 +1,19 @@
 import json
 import re
 from pathlib import Path
-from typing import Dict, List
+from typing import Callable, Dict, List
 
 import numpy as np
 import pandas as pd
 
 
 class PriorityCalculator:
-    def __init__(self, priority_order: List[str], max_wait_time: int = None):
+    def __init__(
+        self,
+        priority_order: List[str],
+        max_wait_time: int = None,
+        extra_priorities: Callable = None,
+    ):
         """
         Initialise the PriorityCalculator with a priority order.
 
@@ -17,6 +22,7 @@ class PriorityCalculator:
         """
         self.priority_order = priority_order
         self.max_wait_time = max_wait_time if max_wait_time is not None else np.inf
+        self.extra_priorities = extra_priorities
 
     def calculate_sorted_indices(self, df: pd.DataFrame) -> np.ndarray:
         """
@@ -141,8 +147,7 @@ class PriorityCalculator:
             [priority_mapping[priority] for priority in self.priority_order[::-1]]
         )  # reverse the order so that the final sort is the last one applied
 
-    @staticmethod
-    def __get_priority_mapping(df: pd.DataFrame) -> Dict[str, np.ndarray]:
+    def __get_priority_mapping(self, df: pd.DataFrame) -> Dict[str, np.ndarray]:
         """
         Create a priority mapping for sorting based on specific conditions.
 
@@ -153,12 +158,15 @@ class PriorityCalculator:
         Returns:
         Dict[str, np.ndarray]: A dictionary where keys are priority criteria and values are arrays used for sorting.
         """
-        return {
+        extra_prios = (
+            self.extra_priorities(df) if self.extra_priorities is not None else {}
+        )
+        return extra_prios | {
             # TODO these top 2 should be moved out to MRI specific code...
-            "MRI days until due": -(df["days waited"] - df["days_until_due"]).fillna(0),
-            "MRI breaches": ~(
-                (df["days waited"] - df["days_until_due"].fillna(0)) > 42
-            ),
+            # "MRI days until due": -(df["days waited"] - df["days_until_due"]).fillna(0),
+            # "MRI breaches": ~(
+            #     (df["days waited"] - df["days_until_due"].fillna(0)) > 42
+            # ),
             "A&E patients": ~(df["setting"] == "A&E Patient"),
             "inpatients": ~(df["setting"] == "Inpatient"),
             "Max wait time": df["max_wait"],

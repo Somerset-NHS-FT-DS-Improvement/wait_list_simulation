@@ -248,6 +248,14 @@ class MriSimulation:
             cancellation_seed=cancellation_seed,
             max_wait_time=self.max_wait_time,
             metrics=MRIMetrics,
+            exta_priorities=_extra_priorities,
         )
 
         return seed, sim, mridept
+
+
+def _extra_priorities(df):
+    return {
+        "MRI days until due": -(df["days waited"] - df["days_until_due"]).fillna(0),
+        "MRI breaches": ~((df["days waited"] - df["days_until_due"].fillna(0)) > 42),
+    }
