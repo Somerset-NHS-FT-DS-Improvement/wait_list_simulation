@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
+
 from simulation.patient_management.priority import PriorityCalculator
 
 
@@ -87,6 +88,17 @@ def test_calculate_sorted_indices(pc, df):
 
     pc.priority_order = ["Under maximum wait time"]
     assert pc.calculate_sorted_indices(df).tolist() == [0, 1]
+
+
+def test_extra_priorities(pc, df):
+    """Test adding in custom priorities."""
+    pc.priority_order = ["Made up"] + pc.priority_order
+    extra_prios = lambda df: {
+        "Made up": df.sort_values(by="setting", ascending=False).index
+    }
+    pc.extra_priorities = extra_prios
+
+    assert pc.calculate_sorted_indices(df).tolist() == [1, 0]
 
 
 if __name__ == "__main__":

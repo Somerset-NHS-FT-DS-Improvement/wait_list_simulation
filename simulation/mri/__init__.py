@@ -1,10 +1,10 @@
-from typing import Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-import sqlalchemy as sa
 
 from .. import parameterise_simulation
+from ..patient_management import Data
 from ..patient_management.forecast_arrivals import Forecaster
 from ..patient_management.patient_categoriser import patient_categoriser
 from ..patient_management.priority import PriorityCalculator
@@ -92,9 +92,12 @@ class MRINewPatients:
         ratios = self.category_ratios.iloc[day_number]["cat"]
 
         patient_indices = [
-            self.rng.choice(self.historic_data[
-                (self.historic_data[self.category_columns] == keys).all(axis=1)
-            ].index, val)
+            self.rng.choice(
+                self.historic_data[
+                    (self.historic_data[self.category_columns] == keys).all(axis=1)
+                ].index,
+                val,
+            )
             for keys, val in ratios.items()
         ]
 
@@ -107,179 +110,191 @@ class MRINewPatients:
         return df
 
 
-def parameterise_new_patient_object(
-    engine: sa.engine.Engine,
-    forecast_horizon: int,
-    path_to_sql_files: str,
-    new_patient_seed: int = None,
-    patient_categoriser_seed: int = None,
-    max_wait_time: int = None,
-) -> "MRINewPatients":
+def process_data(data: Data, max_wait_time: int) -> None:
     """
-    Creates and returns an instance of the MRINewPatients object.
+    Process the data by cleaning and filling missing values, and calculating wait times.
 
     Args:
-        engine (sa.engine.Engine): Database engine to connect to the SQL database.
-        forecast_horizon (int): The number of periods (e.g., days, weeks) over which the forecast is made.
-        path_to_sql_files (str): Path to the SQL files for retrieving data.
-        new_patient_seed (int, optional): Seed for random generation of new patients. Defaults to None.
-        patient_categoriser_seed (int, optional): Seed for categorizing new patients. Defaults to None.
-
-    Returns:
-        MRINewPatients: An instance of MRINewPatients class initialized with required data.
+        data (Data): The data object containing historic and current waiting lists.
+        max_wait_time (int): The maximum wait time to be used in the priority calculation.
     """
-    df = pd.read_sql(
-        open(f"{path_to_sql_files}/MRI_historic_waiting_list.sql", "r").read(),
-        engine,
-    )
+    data.historic_waiting_list["priority"] = data.historic_waiting_list[
+        "priority"
+    ].str.strip()
 
-    df["priority"] = df["priority"].str.strip()
+    data.historic_waiting_list["priority"] = data.historic_waiting_list[
+        "priority"
+    ].fillna("Urgent")
 
-    df["priority"] = df["priority"].fillna("Urgent")
+    data.historic_waiting_list["duration_mins"] = data.historic_waiting_list[
+        "duration_mins"
+    ].fillna(30)
 
-    df["duration_mins"] = df["duration_mins"].fillna(30)
-
+    # Doing this here means it's not required each time new patients are selected
     pc = PriorityCalculator([], max_wait_time)
-    df.loc[:, ["min_wait", "max_wait"]] = pc.calculate_min_and_max_wait_times(df)
-
-    mc = MRINewPatients(
-        pd.read_sql(open(f"{path_to_sql_files}/num_new_refs.sql", "r").read(), engine),
-        df,
-        forecast_horizon,
-        new_patients_seed=new_patient_seed,
-        patient_categoriser_seed=patient_categoriser_seed,
+    data.historic_waiting_list.loc[:, ["min_wait", "max_wait"]] = (
+        pc.calculate_min_and_max_wait_times(data.historic_waiting_list)
     )
 
-    return mc
-
-
-def get_initial_waiting_list(
-    engine: sa.engine.Engine, path_to_sql_files: str
-) -> pd.DataFrame:
-    """
-    Retrieves the initial MRI waiting list from the database.
-
-    Args:
-        engine (sa.engine.Engine): Database engine to connect to the SQL database.
-        path_to_sql_files (str): Path to the SQL files for retrieving data.
-
-    Returns:
-        pd.DataFrame: A DataFrame containing the initial MRI waiting list.
-    """
-    df = pd.read_sql(
-        open(f"{path_to_sql_files}/MRI_current_waiting_list.sql", "r").read(), engine
-    )
-    df["priority"] = df["priority"].str.strip()
+    data.current_waiting_list["priority"] = data.current_waiting_list[
+        "priority"
+    ].str.strip()
 
     # These values taken from a meeting with the MRI dept
-    df["priority"] = df["priority"].fillna("Urgent")
-    df["duration_mins"] = df["duration_mins"].fillna(30)
+    data.current_waiting_list["priority"] = data.current_waiting_list[
+        "priority"
+    ].fillna("Urgent")
+    data.current_waiting_list["duration_mins"] = data.current_waiting_list[
+        "duration_mins"
+    ].fillna(30)
 
-    return df
 
+class MriSimulation:
+    def __init__(
+        self,
+        path_to_sql_queries: str,
+        dna_rate: Optional[float] = None,
+        cancellation_rate: Optional[float] = None,
+        fu_rate: Optional[float] = None,
+        clinic_utilisation: float = 1,
+    ) -> Tuple[int, "Simulation"]:
+        """
+        Initialise the MriSimulation class.
 
-def setup_mri_simulation(
-    path_to_sql_files: str,
-    dna_rate: float = None,
-    cancellation_rate: float = None,
-    fu_rate: float = None,
-    clinic_utilisation: float = 1,
-    seed: int = None,
-) -> tuple[int, "Simulation"]:
-    """
-    Sets up and initializes the MRI simulation.
+        Args:
+            path_to_sql_queries (str): Path to the SQL queries.
+            dna_rate (Optional[float]): DNA rate. Default is None.
+            cancellation_rate (Optional[float]): Cancellation rate. Default is None.
+            fu_rate (Optional[float]): Follow-up rate. Default is None.
+            clinic_utilisation (float): Clinic utilisation rate. Default is 1.
 
-    Args:
-        path_to_sql_files (str): Path to the SQL files and other necessary setup files.
+        Returns:
+            Tuple[int, "Simulation"]: A tuple containing the seed and the simulation object.
+        """
+        self.forecast_horizon = 365
+        self.max_wait_time = 42
+        self.clinic_utilisation = clinic_utilisation
+        self.path_to_sql_queries = path_to_sql_queries
 
-    Returns:
-        tuple[int, Simulation]: A tuple containing the seed used for the simulation and the initialized simulation object.
-    """
-    engine = sa.create_engine(open(f"{path_to_sql_files}/engine.txt", "r").read())
+        self.priority_order = [
+            "MRI breaches",
+            "MRI days until due",
+            "Breach",
+            "Max wait time",
+            "Breach days",
+            "Days waited",
+            "Over minimum wait time",
+            "Under maximum wait time",
+        ]
 
-    seed = np.random.default_rng().integers(0, 2**32) if not seed else seed
+        dna_file_name = None if dna_rate is not None else "MRI_dna_rate.sql"
+        cancellation_file_name = (
+            None if cancellation_rate is not None else "MRI_cancellation_rate.sql"
+        )
 
-    # seeds
-    seeds = np.random.default_rng(seed).integers(0, 2**32, 8)
+        self.mri_data = Data(
+            path_to_sql_queries=path_to_sql_queries,
+            historic_waiting_list_file_name="MRI_historic_waiting_list.sql",
+            num_new_refs_file_name="num_new_refs.sql",
+            current_waiting_list_file_name="MRI_current_waiting_list.sql",
+            dna_file_name=dna_file_name,
+            cancellation_file_name=cancellation_file_name,
+        )
 
-    new_patient_seed = (seeds[0],)
-    patient_categoriser_seed = (seeds[1],)
-    dna_seed = seeds[2]
-    cancellation_seed = seeds[3]
-    emergency_rng = np.random.default_rng(seed=seeds[4])
-    fu_rng = np.random.default_rng(seed=seeds[5])
-    rott_seed = seeds[6]
-    capacity_seed = seeds[7]
+        process_data(self.mri_data, self.max_wait_time)
 
-    if dna_rate is None:
-        dna_rate = pd.read_sql(
-            open(f"{path_to_sql_files}/MRI_dna_rate.sql", "r").read(), engine
-        ).values[0, 0]
-    if cancellation_rate is None:
-        cancellation_rate = pd.read_sql(
-            open(f"{path_to_sql_files}/MRI_cancellation_rate.sql", "r").read(), engine
-        ).values[0, 0]
-    emergency_rate = 0
-    if fu_rate is None:
+        self.dna_rate = self.mri_data.dna_rate if dna_rate is None else dna_rate
+        self.cancellation_rate = (
+            self.mri_data.cancellation_rate
+            if cancellation_rate is None
+            else cancellation_rate
+        )
         # TODO: put a SQL query here!
-        fu_rate = 0
-    # TODO: parameterise this from the sql
-    rott_dist_params = {"mean": 0, "stddev": 0.0001}
+        self.fu_rate = 0 if fu_rate is None else fu_rate
+        emergency_rate = 0
+        # TODO: parameterise this from the sql
+        self.rott_dist_params = {"mean": 0, "stddev": 0.0001}
 
-    # length_of_simulation
-    forecast_horizon = 365
+    def parameterise_simulation(
+        self, seed: Optional[int] = None
+    ) -> Tuple[int, "Simulation", MRIDepartment]:
+        """
+        Parameterise the simulation with the given seed.
 
-    max_wait_time = 42
+        Args:
+            seed (Optional[int]): Seed for the random number generator. Default is None.
 
-    # new patient
-    mc = parameterise_new_patient_object(
-        engine,
-        forecast_horizon,
-        path_to_sql_files,
-        new_patient_seed=new_patient_seed,
-        patient_categoriser_seed=patient_categoriser_seed,
-        max_wait_time=max_wait_time,
-    )
-    new_patient_function = mc.generate_new_patients
+        Returns:
+            Tuple[int, "Simulation", Any]: A tuple containing the seed, the simulation object, and the MRI department object.
+        """
+        seed_gen = np.random.SeedSequence(seed)
+        seed = seed_gen.entropy
 
-    # initial waiting list
-    initial_waiting_list = get_initial_waiting_list(engine, path_to_sql_files)
+        # seeds
+        seeds = seed_gen.generate_state(8)
 
-    mridept = MRIDepartment(
-        f"{path_to_sql_files}/transformed_mri_scanners.json",
-        fu_rate,
-        fu_rng,
-        clinic_utilisation,
-    )
+        new_patient_seed = (seeds[0],)
+        patient_categoriser_seed = (seeds[1],)
+        dna_seed = seeds[2]
+        cancellation_seed = seeds[3]
+        emergency_rng = np.random.default_rng(seed=seeds[4])
+        fu_rng = np.random.default_rng(seed=seeds[5])
+        rott_seed = seeds[6]
+        capacity_seed = seeds[7]
 
-    # resource matching
-    resource_matching_function = mridept.match_mri_resource
+        # new patient
+        mc = MRINewPatients(
+            self.mri_data.num_new_refs,
+            self.mri_data.historic_waiting_list,
+            self.forecast_horizon,
+            new_patients_seed=new_patient_seed,
+            patient_categoriser_seed=patient_categoriser_seed,
+        )
+        new_patient_function = mc.generate_new_patients
 
-    # priority order
-    priority_order = [
-        "Breach",
-        "Max wait time",
-        "Breach days",
-        "Days waited",
-        "Over minimum wait time",
-        "Under maximum wait time",
-    ]
+        mridept = MRIDepartment(
+            f"{self.path_to_sql_queries}/transformed_mri_scanners.json",
+            self.fu_rate,
+            fu_rng,
+            self.clinic_utilisation,
+        )
 
-    sim = parameterise_simulation(
-        initial_waiting_list,
-        new_patient_function,
-        resource_matching_function,
-        priority_order,
-        dna_rate,
-        cancellation_rate,
-        forecast_horizon,
-        rott_dist_params=rott_dist_params,
-        rott_seed=rott_seed,
-        capacity_seed=capacity_seed,
-        dna_seed=dna_seed,
-        cancellation_seed=cancellation_seed,
-        max_wait_time=max_wait_time,
-        metrics=MRIMetrics,
-    )
+        # resource matching
+        resource_matching_function = mridept.match_mri_resource
 
-    return seed, sim, mridept
+        sim = parameterise_simulation(
+            self.mri_data.current_waiting_list,
+            new_patient_function,
+            resource_matching_function,
+            self.priority_order,
+            self.dna_rate,
+            self.cancellation_rate,
+            self.forecast_horizon,
+            rott_dist_params=self.rott_dist_params,
+            rott_seed=rott_seed,
+            capacity_seed=capacity_seed,
+            dna_seed=dna_seed,
+            cancellation_seed=cancellation_seed,
+            max_wait_time=self.max_wait_time,
+            metrics=MRIMetrics,
+            exta_priorities=self._extra_priorities,
+        )
+
+        return seed, sim, mridept
+
+    def _extra_priorities(self, df: pd.DataFrame) -> dict[str, List[int]]:
+        """
+        Calculate extra priorities for the MRI simulation.
+
+        Args:
+            df (pd.DataFrame): Dataframe containing patient data.
+
+        Returns:
+            dict[str, Any]: A dictionary containing extra priorities.
+        """
+        return {
+            "MRI days until due": -(df["days waited"] - df["days_until_due"]).fillna(0),
+            "MRI breaches": ~(
+                (df["days waited"] - df["days_until_due"].fillna(0)) > 42
+            ),
+        }
