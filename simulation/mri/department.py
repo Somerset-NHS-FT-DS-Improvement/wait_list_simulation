@@ -98,11 +98,13 @@ class MRIDepartment:
 
             # check if the resource supports pediatric scans
             supports_paediatric_scans = resource_info.get("peadiatric_scans", False)
-            
+
             # filter patients relevant to this resource
             resource_waiting_list_df = waiting_list_df[
-                (waiting_list_df[resource_name] == 1) &  # compatible with this resource
-                ((supports_paediatric_scans) | (waiting_list_df["age"] >= 18))  # paediatric compatibility logic
+                (waiting_list_df[resource_name] == 1)  # compatible with this resource
+                & (
+                    (supports_paediatric_scans) | (waiting_list_df["age"] >= 18)
+                )  # paediatric compatibility logic
             ]
 
             # go through the slots for this resource, day

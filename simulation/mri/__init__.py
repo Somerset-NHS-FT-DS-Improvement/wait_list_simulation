@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -8,6 +8,7 @@ from ..patient_management import Data
 from ..patient_management.forecast_arrivals import Forecaster
 from ..patient_management.patient_categoriser import patient_categoriser
 from ..patient_management.priority import PriorityCalculator
+from ..patient_management.rott import RemovalOtherThanTreatment
 from .department import MRIDepartment
 from .metrics import MRIMetrics
 
@@ -156,6 +157,7 @@ class MriSimulation:
         dna_rate: Optional[float] = None,
         cancellation_rate: Optional[float] = None,
         fu_rate: Optional[float] = None,
+        rott_params: Optional[Dict[str, float]] = None,
         clinic_utilisation: float = 1,
     ) -> Tuple[int, "Simulation"]:
         """
@@ -166,6 +168,7 @@ class MriSimulation:
             dna_rate (Optional[float]): DNA rate. Default is None.
             cancellation_rate (Optional[float]): Cancellation rate. Default is None.
             fu_rate (Optional[float]): Follow-up rate. Default is None.
+            rott_params (Optional[Dict[str, float]]): mean and std_dev for rott generation. Default is None.
             clinic_utilisation (float): Clinic utilisation rate. Default is 1.
 
         Returns:
@@ -187,10 +190,12 @@ class MriSimulation:
             "Under maximum wait time",
         ]
 
+        fu_file_name = None if fu_rate is not None else "MRI_fu_rate.sql"
         dna_file_name = None if dna_rate is not None else "MRI_dna_rate.sql"
         cancellation_file_name = (
             None if cancellation_rate is not None else "MRI_cancellation_rate.sql"
         )
+        rott_file_name = None if rott_params is not None else "MRI_rott_rate.sql"
 
         self.mri_data = Data(
             path_to_sql_queries=path_to_sql_queries,
@@ -199,21 +204,25 @@ class MriSimulation:
             current_waiting_list_file_name="MRI_current_waiting_list.sql",
             dna_file_name=dna_file_name,
             cancellation_file_name=cancellation_file_name,
+            fu_file_name=fu_file_name,
+            rott_file_name=rott_file_name,
         )
 
         process_data(self.mri_data, self.max_wait_time)
 
+        self.fu_rate = self.mri_data.fu_rate if fu_rate is None else fu_rate
         self.dna_rate = self.mri_data.dna_rate if dna_rate is None else dna_rate
         self.cancellation_rate = (
             self.mri_data.cancellation_rate
             if cancellation_rate is None
             else cancellation_rate
         )
-        # TODO: put a SQL query here!
-        self.fu_rate = 0 if fu_rate is None else fu_rate
-        emergency_rate = 0
-        # TODO: parameterise this from the sql
-        self.rott_dist_params = {"mean": 0, "stddev": 0.0001}
+
+        self.rott = RemovalOtherThanTreatment(horizon=self.forecast_horizon)
+        if rott_params is None:
+            self.rott.setup_distribution_from_data(**self.mri_data.rott)
+        else:
+            self.rott.setup_stochastic_distribution(**rott_params)
 
     def parameterise_simulation(
         self, seed: Optional[int] = None
@@ -259,6 +268,8 @@ class MriSimulation:
             self.clinic_utilisation,
         )
 
+        self.rott.seed = rott_seed
+
         # resource matching
         resource_matching_function = mridept.match_mri_resource
 
@@ -270,8 +281,7 @@ class MriSimulation:
             self.dna_rate,
             self.cancellation_rate,
             self.forecast_horizon,
-            rott_dist_params=self.rott_dist_params,
-            rott_seed=rott_seed,
+            rott_object=self.rott,
             capacity_seed=capacity_seed,
             dna_seed=dna_seed,
             cancellation_seed=cancellation_seed,

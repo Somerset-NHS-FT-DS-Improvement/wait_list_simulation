@@ -27,22 +27,41 @@ class RemovalOtherThanTreatment:
         self.mean = None
         self.std_dev = None
 
-    def setup_sql_distribution(self, sql_engine: Engine, query_string: str) -> None:
-        """
-        Set up the mean and standard deviation values using a SQL query.
+    # def setup_sql_distribution(self, sql_engine: Engine, query_string: str) -> None:
+    #     """
+    #     Set up the mean and standard deviation values using a SQL query.
+    #
+    #     This method executes a SQL query to pull a single-column table of daily removals other than treatment (ROTT)
+    #     and calculates the mean and standard deviation of these values.
+    #
+    #     Parameters:
+    #     sql_engine (SQLAlchemy Engine): A SQLAlchemy-compatible SQL engine.
+    #     query_string (str): The SQL query string that retrieves the data.
+    #
+    #     Raises:
+    #     ValueError: If the query returns more than one column.
+    #     """
+    #     dataframe = pd.read_sql(query_string, con=sql_engine)
+    #
+    #     # Dataframe should only have one column, raise error if this is not the case
+    #     if dataframe.shape[1] > 1:
+    #         raise ValueError("The DataFrame has more than one column.")
+    #
+    #     self.mean = dataframe[0].mean()
+    #     self.std_dev = dataframe[0].std()
 
-        This method executes a SQL query to pull a single-column table of daily removals other than treatment (ROTT)
-        and calculates the mean and standard deviation of these values.
+    def setup_distribution_from_data(self, dataframe: pd.DataFrame) -> None:
+        """
+        Set up the mean and standard deviation from a dataframe.
+
+        This method calculates the mean and standard deviation of a dataframe provided to it.
 
         Parameters:
-        sql_engine (SQLAlchemy Engine): A SQLAlchemy-compatible SQL engine.
-        query_string (str): The SQL query string that retrieves the data.
+        dataframe (pd.DataFrame): A pandas dataframe that contains the rott data.
 
         Raises:
         ValueError: If the query returns more than one column.
         """
-        dataframe = pd.read_sql(query_string, con=sql_engine)
-
         # Dataframe should only have one column, raise error if this is not the case
         if dataframe.shape[1] > 1:
             raise ValueError("The DataFrame has more than one column.")
