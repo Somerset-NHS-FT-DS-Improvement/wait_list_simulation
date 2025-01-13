@@ -25,34 +25,25 @@ def test_setup_stochastic_distribution():
     assert rott.std_dev == 10.0
 
 
-def test_setup_sql_distribution():
+def test_setup_distribution_from_data():
     """Test setup_sql_distribution with mocked SQL engine."""
     rott = RemovalOtherThanTreatment(horizon=30)
-
-    mock_engine = MagicMock()
-    query_string = "SELECT rott FROM daily_removals"
-
     mock_dataframe = pd.DataFrame({0: [1, 2, 0, 0, 4]})
-    pd.read_sql = MagicMock(return_value=mock_dataframe)
 
-    rott.setup_sql_distribution(mock_engine, query_string)
+    rott.setup_distribution_from_data(mock_dataframe)
 
     assert rott.mean == mock_dataframe[0].mean()
     assert rott.std_dev == mock_dataframe[0].std()
 
 
-def test_sql_distribution_error():
+def test_setup_distribution_from_data_error():
     """Test error if SQL returns more than one column."""
     rott = RemovalOtherThanTreatment(horizon=30)
 
-    mock_engine = MagicMock()
-    query_string = "SELECT rott, other_column FROM daily_removals"
-
     mock_dataframe = pd.DataFrame({"rott": [30, 40, 50], "other_column": [1, 2, 3]})
-    pd.read_sql = MagicMock(return_value=mock_dataframe)
 
     with pytest.raises(ValueError, match="The DataFrame has more than one column."):
-        rott.setup_sql_distribution(mock_engine, query_string)
+        rott.setup_distribution_from_data(mock_dataframe)
 
 
 def test_return_number_of_removals():

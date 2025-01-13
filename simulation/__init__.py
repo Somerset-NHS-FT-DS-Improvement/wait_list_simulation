@@ -1,9 +1,8 @@
 from datetime import datetime
-from typing import Callable, Dict, List, Optional
+from typing import Callable, List, Optional
 
 import pandas as pd
 import sfttoolbox
-from sqlalchemy.engine import Engine
 
 from .patient_management.priority import PriorityCalculator
 from .patient_management.rott import RemovalOtherThanTreatment
@@ -22,9 +21,7 @@ def parameterise_simulation(
     dna_rate: float,
     cancellation_rate: float,
     length_of_simulation: int,
-    rott_sql_query: Optional[Dict[str, Engine]] = None,
-    rott_dist_params: Optional[Dict[str, float]] = None,
-    rott_seed: Optional[int] = None,
+    rott_object: RemovalOtherThanTreatment,
     capacity_seed: Optional[int] = None,
     dna_seed: Optional[int] = None,
     cancellation_seed: Optional[int] = None,
@@ -44,9 +41,7 @@ def parameterise_simulation(
         dna_rate (float): The "Did Not Attend" (DNA) rate for missed appointments.
         cancellation_rate (float): The rate of cancellations by patients.
         length_of_simulation (int): The total number of simulation days.
-        rott_sql_query (Optional[Dict[str, Any]]): SQL query information for ROTT distribution, if provided.
-        rott_dist_params (Optional[Dict[str, float]]): Parameters for a stochastic distribution for ROTT.
-        rott_seed (Optional[int]): Seed for random number generation in ROTT.
+        rott_object (RemovalOtherThanTreatment): A parameterised rott object.
         capacity_seed (Optional[int]): Seed for random number generation in capacity calculations.
         dna_seed (Optional[int]): Seed for random number generation in DNA calculations.
         cancellation_seed (Optional[int]): Seed for random number generation in cancellation calculations.
@@ -65,19 +60,7 @@ def parameterise_simulation(
         pc.calculate_min_and_max_wait_times(initial_waitlist)
     )
 
-    rott = RemovalOtherThanTreatment(length_of_simulation, seed=rott_seed)
-    if rott_sql_query:
-        rott.setup_sql_distribution(
-            sql_engine=rott_sql_query["engine"], query_string=rott_sql_query["query"]
-        )
-    elif rott_dist_params:
-        rott.setup_stochastic_distribution(
-            mean=rott_dist_params["mean"], std_dev=rott_dist_params["stddev"]
-        )
-    else:
-        raise Exception("Either rott_sql_query or rott_dist_params must be defined.")
-
-    rott_removals = rott.return_number_of_removals()
+    rott_removals = rott_object.return_number_of_removals()
 
     cap = Capacity(
         resource_matching_function,
