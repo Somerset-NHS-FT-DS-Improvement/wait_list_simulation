@@ -1,20 +1,14 @@
 from itertools import cycle
 
 import pandas as pd
-import sqlalchemy as sa
 
 
 class OutpatientResourceMatcher:
-    def __init__(self, engine, treatment_function_code, fu_rate=0):
-        # Load the resource information
-        resource_df = pd.read_sql(
-            f"EXECUTE [wl].[outpatient_clinics] @tfc='{treatment_function_code}'",
-            engine,
-        )
-
+    def __init__(self, resource_df, fu_rate=0, fu_rng=None):
         self.resource = self.__process_capacity(resource_df)
 
         self.fu_rate = fu_rate
+        self.fu_rng = fu_rng
 
     def __process_capacity(self, resource_df):
         resource_df = resource_df.groupby("SessionDate").sum()[
@@ -61,15 +55,15 @@ class OutpatientResourceMatcher:
         return indices, fu_df
 
 
-if __name__ == "__main__":
-    engine = sa.create_engine(open(f"op_sql/engine.txt", "r").read())
-
-    oprm = OutpatientResourceMatcher(engine, 110)
-
-    treatment_function_code = 110
-    wait_list = pd.read_sql(
-        f"Execute [wl].[current_opa_waiting_list] @site=mph, @tfc='{treatment_function_code}'",
-        engine,
-    )
-
-    oprm.match_resource(wait_list)
+# if __name__ == "__main__":
+#     engine = sa.create_engine(open(f"op_sql/engine.txt", "r").read())
+#
+#     oprm = OutpatientResourceMatcher(engine, 110)
+#
+#     treatment_function_code = 110
+#     wait_list = pd.read_sql(
+#         f"Execute [wl].[current_opa_waiting_list] @site=mph, @tfc='{treatment_function_code}'",
+#         engine,
+#     )
+#
+#     oprm.match_resource(wait_list)
