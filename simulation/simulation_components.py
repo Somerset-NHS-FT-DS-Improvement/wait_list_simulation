@@ -219,7 +219,6 @@ class Capacity:
         Returns:
             Generator[pd.Series, None, None]: A generator that yields patients who are seen on that day.
         """
-        breakpoint()
         self.wait_list = pd.concat(
             [self.wait_list, pd.DataFrame(self.wait_list_holder)]
         ).reset_index(drop=True)
