@@ -219,6 +219,7 @@ class Capacity:
         Returns:
             Generator[pd.Series, None, None]: A generator that yields patients who are seen on that day.
         """
+        breakpoint()
         self.wait_list = pd.concat(
             [self.wait_list, pd.DataFrame(self.wait_list_holder)]
         ).reset_index(drop=True)
@@ -234,6 +235,7 @@ class Capacity:
         )
         num_patients_seen = len(patients_to_move_on_indices)
 
+        # TODO: This can mean someone who doesn't turn up gets a FU appt
         num_dnas = 0
         if self.dna_rate:
             patients_to_move_on_indices, num_dnas, num_discharged_dna = self.__calculate_non_attendance(

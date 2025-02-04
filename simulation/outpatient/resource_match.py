@@ -46,7 +46,7 @@ class OutpatientResourceMatcher:
         fu_df = None
         if self.fu_rate:
             num_fus = int(len(indices) * self.fu_rate)
-            fu_indices = self.fu_rng.choice(indices, num_fus)
+            fu_indices = self.fu_rng.choice(indices, num_fus, replace=False)
             fu_df = wait_list.iloc[fu_indices]
             fu_df["priority"] = "Follow-up"
             fu_df["appointment_type"] = "followup"
