@@ -20,6 +20,7 @@ def parameterise_simulation(
     priority_order: List,
     dna_rate: float,
     cancellation_rate: float,
+    discharge_rate: float,
     length_of_simulation: int,
     rott_object: RemovalOtherThanTreatment,
     capacity_seed: Optional[int] = None,
@@ -40,6 +41,7 @@ def parameterise_simulation(
         priority_order (Any): Defines the priority ordering for the patients.
         dna_rate (float): The "Did Not Attend" (DNA) rate for missed appointments.
         cancellation_rate (float): The rate of cancellations by patients.
+        discharge_rate (float): The rate at which patients discharge after DNA/cancellation.
         length_of_simulation (int): The total number of simulation days.
         rott_object (RemovalOtherThanTreatment): A parameterised rott object.
         capacity_seed (Optional[int]): Seed for random number generation in capacity calculations.
@@ -54,8 +56,7 @@ def parameterise_simulation(
     """
     pg = PatientGenerator(new_patient_function, start_id=initial_waitlist.shape[0])
 
-    extra_prios = {} if exta_priorities is None else exta_priorities
-    pc = PriorityCalculator(priority_order, max_wait_time, extra_prios)
+    pc = PriorityCalculator(priority_order, max_wait_time, exta_priorities)
     initial_waitlist.loc[:, ["min_wait", "max_wait"]] = (
         pc.calculate_min_and_max_wait_times(initial_waitlist)
     )
@@ -67,6 +68,7 @@ def parameterise_simulation(
         pc,
         dna_rate,
         cancellation_rate,
+        discharge_rate,
         initial_waitlist,
         rott_removals,
         seed=capacity_seed,

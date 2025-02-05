@@ -95,6 +95,7 @@ class Metrics:
         num_patients_seen: int,
         num_dnas: int,
         num_cancellations: int,
+        num_discharged: int,
     ) -> None:
         """
         Updates the metrics for the current day.
@@ -103,6 +104,7 @@ class Metrics:
             num_patients_seen (int): The number of patients seen on that day.
             num_dnas (int): The number of patients who did not attend (DNA).
             num_cancellations (int): The number of cancellations for that day.
+            num_discharged (int): The number of patients discharged after a DNA/cancellation
         """
         self.metrics["maximum_wait_time"].append(
             capacity_object.wait_list["days waited"].max()
@@ -111,6 +113,7 @@ class Metrics:
         self.metrics["num_patients_seen"].append(num_patients_seen)
         self.metrics["num_dnas"].append(num_dnas)
         self.metrics["num_cancellations"].append(num_cancellations)
+        self.metrics["num_discharged"].append(num_discharged)
         # self.metrics["num_breaches"].append(capacity_object.__calculate_breaches())
         self.metrics["median_wait_times_by_priority"].append(
             capacity_object.wait_list.groupby("priority")["days waited"]
@@ -129,6 +132,7 @@ class Capacity:
         prioritisation_calculator,
         dna_rate,
         cancellation_rate,
+        discharge_rate,
         initial_wait_list,
         rott_removals,
         seed=None,
@@ -158,6 +162,7 @@ class Capacity:
             match_resource (Callable): Function to match resources to patients.
             dna_rate (float): Rate of patients not attending their appointments.
             cancellation_rate (float): Rate of patients cancelling their appointments.
+            discharge_rate: (float): Rate at which patients are discharged after DNA/cancelling
             rott_removals (list[int]): Removals due to reasons other than treatment for each day.
             rng (np.random.Generator): RNG for general use.
             dna_rng (np.random.Generator): RNG for DNA calculations.
@@ -171,6 +176,7 @@ class Capacity:
 
         self.dna_rate = dna_rate
         self.cancellation_rate = cancellation_rate
+        self.discharge_rate = discharge_rate
 
         self.rott_removals = rott_removals
 
@@ -228,10 +234,11 @@ class Capacity:
         )
         num_patients_seen = len(patients_to_move_on_indices)
 
+        # TODO: This can mean someone who doesn't turn up gets a FU appt
         num_dnas = 0
         if self.dna_rate:
-            patients_to_move_on_indices, num_dnas = self.__calculate_non_attendance(
-                patients_to_move_on_indices, self.dna_rate, self.dna_rng
+            patients_to_move_on_indices, num_dnas, num_discharged_dna = self.__calculate_non_attendance(
+                patients_to_move_on_indices, self.dna_rate, self.dna_rng, self.discharge_rate
             )
 
         num_cancellations = 0
@@ -239,28 +246,34 @@ class Capacity:
             (
                 patients_to_move_on_indices,
                 num_cancellations,
+                num_discharged_cancel
             ) = self.__calculate_non_attendance(
                 patients_to_move_on_indices,
                 self.cancellation_rate,
                 self.cancellation_rng,
+                self.discharge_rate
             )
+        num_discharged = num_discharged_dna + num_discharged_cancel
 
         patients_to_move_on = self.wait_list[
             self.wait_list.index.isin(patients_to_move_on_indices)
         ]
         self.wait_list.drop(index=patients_to_move_on_indices, inplace=True)
 
+
         # All FU logic is bespoke, and added in the resource matching function
         if fu_patients is not None:
             self.wait_list = pd.concat([self.wait_list, fu_patients])
 
-        rott_patients = self.rng.choice(
-            self.wait_list.index, self.rott_removals[day_num]
-        )
-        self.wait_list.drop(index=rott_patients, inplace=True)
+        if len(self.wait_list) > 0:
+            rott_patients = self.rng.choice(
+                self.wait_list.index, self.rott_removals[day_num]
+            )
+
+            self.wait_list.drop(index=rott_patients, inplace=True)
 
         self.metrics.update_metrics(
-            self, num_patients_seen, num_dnas, num_cancellations
+            self, num_patients_seen, num_dnas, num_cancellations, num_discharged
         )
         self.wait_list["days waited"] += 1
 
@@ -272,31 +285,38 @@ class Capacity:
         patients_assigned_slots_indices: list[int],
         rate: float,
         rng: np.random.Generator,
+        discharge_rate: float = 0
     ) -> tuple[list[int], int]:
         """
         Calculates the number of patients who will not attend based on the given rate.
 
         Args:
             patients_assigned_slots_indices (list[int]): List of indices for patients assigned slots.
-            rate (float): The rate of non-attendance (DNA).
+            rate (float): The rate of non-attendance (DNA or last minute cancellation).
             rng (np.random.Generator): Random number generator for selecting non-attending patients.
+            discharge_rate (float): The rate at which DNA or cancellations do not rebook.
 
         Returns:
             tuple[list[int], int]: A tuple containing the updated list of patient indices
             and the number of patients who did not attend.
         """
-        num_non_attend = int(len(patients_assigned_slots_indices) * (rate / 100))
+        num_non_attend = int(len(patients_assigned_slots_indices) * rate)
         patients_not_attending_indices = rng.choice(
             patients_assigned_slots_indices, num_non_attend, replace=False
         )
 
-        for patient_index in patients_not_attending_indices:
-            patients_assigned_slots_indices.remove(patient_index)
+        discharge_probability = rng.random(num_non_attend)
+        num_discharged = 0
+        for patient_index, discharge_prob in zip(patients_not_attending_indices, discharge_probability):
+            if discharge_prob > discharge_rate:
+                patients_assigned_slots_indices.remove(patient_index)
 
-            self.wait_list.loc[patient_index, "priority"] = "DNA/Cancellation"
-            self.wait_list.loc[patient_index, "days waited"] = 0
+                self.wait_list.loc[patient_index, "priority"] = "DNA/Cancellation"
+                self.wait_list.loc[patient_index, "days waited"] = 0
+            else:
+                num_discharged += 1
 
-        return patients_assigned_slots_indices, num_non_attend
+        return patients_assigned_slots_indices, num_non_attend, num_discharged
 
     def __calculate_breaches(self) -> dict:
         """

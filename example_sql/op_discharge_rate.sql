@@ -1,0 +1,1 @@
+SELECT * FROM discharge_rate

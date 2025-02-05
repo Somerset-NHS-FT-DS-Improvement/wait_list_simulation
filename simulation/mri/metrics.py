@@ -16,6 +16,7 @@ class MRIMetrics(Metrics):
         num_patients_seen: int,
         num_dnas: int,
         num_cancellations: int,
+        num_discharged: int,
     ) -> None:
         """
         Update the metrics for the MRI department.
@@ -27,7 +28,7 @@ class MRIMetrics(Metrics):
             num_cancellations (int): Number of cancellations.
         """
         super().update_metrics(
-            capacity_object, num_patients_seen, num_dnas, num_cancellations
+            capacity_object, num_patients_seen, num_dnas, num_cancellations, num_discharged
         )
         due_day_present = ~capacity_object.wait_list["days_until_due"].isna()
 

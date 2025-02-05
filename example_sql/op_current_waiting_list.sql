@@ -1,0 +1,1 @@
+SELECT * FROM current_waiting_list

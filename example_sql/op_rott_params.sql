@@ -1,0 +1,1 @@
+SELECT * FROM rott_params
