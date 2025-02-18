@@ -5,6 +5,7 @@ import pandas as pd
 
 from .. import parameterise_simulation
 from ..patient_management import Data, NewPatients
+from ..patient_management.priority import PriorityCalculator
 from ..patient_management.rott import RemovalOtherThanTreatment
 from .resource_match import OutpatientResourceMatcher
 
@@ -44,7 +45,7 @@ class OPSimulation:
         self.priority_order = [
             "A&E patients",
             "inpatients",
-            "Breach",
+            "Breach percentage",
             "Days waited",
             "Over minimum wait time",
             "Under maximum wait time",
@@ -181,6 +182,13 @@ class OPData(Data):
         )
         # TODO: This is very slow!
         self.op_clinic_slots = self._run_sql("op_clinic_slots.sql")
+
+        self.current_waiting_list["days waited"] = np.clip(self.current_waiting_list["days waited"].fillna(0), 0, np.inf)
+
+        pc = PriorityCalculator([])
+        self.historic_waiting_list.loc[:, ["min_wait", "max_wait"]] = (
+            pc.calculate_min_and_max_wait_times(self.historic_waiting_list)
+        )
 
     def _run_sql(self, filename):
         return pd.read_sql(

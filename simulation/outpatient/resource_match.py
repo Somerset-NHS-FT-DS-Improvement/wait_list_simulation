@@ -50,6 +50,8 @@ class OutpatientResourceMatcher:
             fu_df = wait_list.iloc[fu_indices]
             fu_df["priority"] = "Follow-up"
             fu_df["appointment_type"] = "followup"
+            fu_df["min_wait"] = 21
+            fu_df["max_wait"] = 126
             fu_df["days waited"] = 0
 
         return indices, fu_df

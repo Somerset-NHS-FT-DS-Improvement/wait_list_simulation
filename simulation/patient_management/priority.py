@@ -162,14 +162,10 @@ class PriorityCalculator:
             self.extra_priorities(df) if self.extra_priorities is not None else {}
         )
         return extra_prios | {
-            # TODO these top 2 should be moved out to MRI specific code...
-            # "MRI days until due": -(df["days waited"] - df["days_until_due"]).fillna(0),
-            # "MRI breaches": ~(
-            #     (df["days waited"] - df["days_until_due"].fillna(0)) > 42
-            # ),
             "A&E patients": ~(df["setting"] == "A&E Patient"),
             "inpatients": ~(df["setting"] == "Inpatient"),
             "Max wait time": df["max_wait"],
+            "Breach percentage": -(df["days waited"] - df["max_wait"]) / df["max_wait"],
             "Breach": (df["days waited"] < df["max_wait"]),
             "Breach days": -(df["days waited"] - df["max_wait"]),
             "Days waited": -df["max_wait"],

@@ -312,24 +312,26 @@ class Capacity:
                 patients_assigned_slots_indices.remove(patient_index)
 
                 self.wait_list.loc[patient_index, "priority"] = "DNA/Cancellation"
+                self.wait_list.loc[patient_index, "min_wait"] = 7
+                self.wait_list.loc[patient_index, "max_wait"] = 30
                 self.wait_list.loc[patient_index, "days waited"] = 0
             else:
                 num_discharged += 1
 
         return patients_assigned_slots_indices, num_non_attend, num_discharged
 
-    def __calculate_breaches(self) -> dict:
-        """
-        Calculates the number of breaches based on the maximum wait times for different priorities.
-
-        Returns:
-            dict: A dictionary with priority as keys and counts of breaches as values.
-        """
-        min_max_wait_times = (
-            self.prioritisation_calculator.calculate_min_and_max_wait_times(
-                self.wait_list
-            )
-        )
+    # def __calculate_breaches(self) -> dict:
+    #     """
+    #     Calculates the number of breaches based on the maximum wait times for different priorities.
+    #
+    #     Returns:
+    #         dict: A dictionary with priority as keys and counts of breaches as values.
+    #     """
+    #     min_max_wait_times = (
+    #         self.prioritisation_calculator.calculate_min_and_max_wait_times(
+    #             self.wait_list
+    #         )
+    #     )
 
         return (
             self.wait_list[self.wait_list["days waited"] > min_max_wait_times[:, 1]]
