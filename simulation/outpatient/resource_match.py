@@ -10,6 +10,8 @@ class OutpatientResourceMatcher:
         self.fu_rate = fu_rate
         self.fu_rng = fu_rng
 
+        self.borrowed_capacity = {"first":0, "followup":0}
+
     def __process_capacity(self, resource_df):
         resource_df = resource_df.groupby("SessionDate").sum()[
             ["first", "followup", "unknown", "Total_slots"]
@@ -24,24 +26,26 @@ class OutpatientResourceMatcher:
         return cycle(resource_df.iterrows())
 
     def match_resource(self, wait_list, day, day_num):
+        must_be_seen = wait_list[wait_list["sim_day_appt_due"] == day_num]
+
         _, num_appts = next(self.resource)
 
-        indices = (
-            wait_list[wait_list["appointment_type"] == "first"]
-            .iloc[: num_appts["first"]]
-            .index.to_list()
-        )
-        indices += (
-            wait_list[wait_list["appointment_type"] == "followup"]
-            .iloc[: num_appts["followup"]]
-            .index.to_list()
-        )
+        indices = []
+        for appt_type in ["first", "followup"]:
+            if self.borrowed_capacity[appt_type] != 0:
+                num_appts[appt_type] += self.borrowed_capacity[appt_type]
 
-        indices += (
-            wait_list[~wait_list.index.isin(indices)]
-            .iloc[: int(num_appts["unknown"])]
-            .index.to_list()
-        )
+            tmp_indices = must_be_seen[must_be_seen["appointment_type"] == appt_type].index.to_list()
+            if (remaining_appts := num_appts[appt_type] - len(tmp_indices)) < 0:
+                num_appts[appt_type] = 0
+                self.borrowed_capacity[appt_type] += remaining_appts
+            indices += tmp_indices
+
+            indices += (
+                wait_list[(wait_list["appointment_type"] == appt_type) & (wait_list["sim_day_appt_due"].isna())]
+                .iloc[: num_appts[appt_type]]
+                .index.to_list()
+            )
 
         fu_df = None
         if self.fu_rate:
