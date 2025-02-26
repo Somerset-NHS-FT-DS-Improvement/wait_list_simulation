@@ -4,16 +4,15 @@ import holidays
 import numpy as np
 import pandas as pd
 from sktime.forecasting.statsforecast import StatsForecastAutoARIMA
-from sktime.forecasting.fbprophet import Prophet
+from sktime.forecasting.trend import STLForecaster
+from sktime.forecasting.naive import NaiveForecaster
 
 warnings.filterwarnings("ignore")
 
 
 class Forecaster:
-    def __init__(self, data_in, fh, model=Prophet(growth="flat", 
-                                                  changepoint_range=1, 
-                                                  yearly_seasonality=True, 
-                                                  weekly_seasonality=True)):
+    def __init__(self, data_in, fh, model=STLForecaster(sp=7,
+                                                        forecaster_trend = NaiveForecaster(strategy="mean"))):
         """
         A forecasting class for predicting referrals.
 
@@ -25,7 +24,7 @@ class Forecaster:
             fh (int): Forecast horizon, representing the number of future periods (in days)
                       for which predictions will be generated.
             model (sktime object, optional): The forecasting model to be used. Defaults to
-                                             Facebook Prophet with flat trend.
+                                             STL with mean trend forecast.
 
         Attributes:
             data (pd.DataFrame): The transformed data formatted in a structure suitable for the
