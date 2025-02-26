@@ -1,6 +1,7 @@
 from itertools import cycle
 
 import pandas as pd
+import numpy as np
 
 
 class OutpatientResourceMatcher:
@@ -11,6 +12,8 @@ class OutpatientResourceMatcher:
         self.fu_rng = fu_rng
 
         self.borrowed_capacity = {"first":0, "followup":0}
+        self.unutilised_appts = {}
+        self.borrowed_capacities = {}
 
     def __process_capacity(self, resource_df):
         resource_df = resource_df.groupby("SessionDate").sum()[
@@ -31,14 +34,20 @@ class OutpatientResourceMatcher:
         _, num_appts = next(self.resource)
 
         indices = []
+
         for appt_type in ["first", "followup"]:
             if self.borrowed_capacity[appt_type] != 0:
                 num_appts[appt_type] += self.borrowed_capacity[appt_type]
+                self.borrowed_capacity[appt_type] = 0
 
             tmp_indices = must_be_seen[must_be_seen["appointment_type"] == appt_type].index.to_list()
-            if (remaining_appts := num_appts[appt_type] - len(tmp_indices)) < 0:
+            remaining_appts = num_appts[appt_type] - len(tmp_indices)
+            if remaining_appts < 0:
                 num_appts[appt_type] = 0
                 self.borrowed_capacity[appt_type] += remaining_appts
+            else:
+                num_appts[appt_type] = remaining_appts
+
             indices += tmp_indices
 
             indices += (
@@ -46,6 +55,7 @@ class OutpatientResourceMatcher:
                 .iloc[: num_appts[appt_type]]
                 .index.to_list()
             )
+        self._update_metrics(day_num, num_appts)
 
         fu_df = None
         if self.fu_rate:
@@ -57,6 +67,12 @@ class OutpatientResourceMatcher:
             fu_df["min_wait"] = 21
             fu_df["max_wait"] = 126
             fu_df["days waited"] = 0
+            fu_df["sim_day_appt_due"] = np.nan
 
         return indices, fu_df
+
+
+    def _update_metrics(self, day_num, num_appts):
+        self.unutilised_appts[day_num] = num_appts
+        self.borrowed_capacities[day_num] = self.borrowed_capacity.copy()
 

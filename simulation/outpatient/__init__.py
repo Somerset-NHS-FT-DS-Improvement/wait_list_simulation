@@ -291,5 +291,6 @@ class OPNewPatient(NewPatients):
             df = self.historic_data.iloc[np.concatenate(patient_indices)].copy()
             df.loc[:, "days waited"] = 0
             df["sim_day_appt_due"] += day_number
+            # df["sim_day_appt_due"] = np.nan
 
         return df
