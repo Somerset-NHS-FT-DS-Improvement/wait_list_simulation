@@ -2,9 +2,11 @@ from typing import Optional, Tuple, Dict
 
 import numpy as np
 import pandas as pd
+import datetime
 
 from .. import parameterise_simulation
 from ..patient_management import Data, NewPatients
+from ..patient_management.priority import PriorityCalculator
 from ..patient_management.rott import RemovalOtherThanTreatment
 from .resource_match import OutpatientResourceMatcher
 
@@ -44,7 +46,7 @@ class OPSimulation:
         self.priority_order = [
             "A&E patients",
             "inpatients",
-            "Breach",
+            "Breach percentage",
             "Days waited",
             "Over minimum wait time",
             "Under maximum wait time",
@@ -114,7 +116,7 @@ class OPSimulation:
         rott_seed = seeds[6]
         capacity_seed = seeds[7]
 
-        mc = NewPatients(
+        mc = OPNewPatient(
             self.op_data.num_new_refs,
             self.op_data.historic_waiting_list,
             self.forecast_horizon,
@@ -180,12 +182,116 @@ class OPData(Data):
             rott_file_name
         )
         # TODO: This is very slow!
-        self.op_clinic_slots = self._run_sql("op_clinic_slots.sql")
+        # self.op_clinic_slots = self._run_sql("op_clinic_slots.sql")
 
-    def _run_sql(self, filename):
-        return pd.read_sql(
-            open(f"{self.path_to_sql_queries}/{filename}", "r").read().format(site=self.site, tfc=self.tfc),
-            self.engine,
+
+        df = pd.read_csv(f"{self.path_to_sql_queries}/wl_stats.csv")
+        self.num_new_refs = self._num_new_refs_hack(df)
+        self.op_clinic_slots = self._op_clinic_slots(df)
+
+        self.current_waiting_list["days waited"] = np.clip(self.current_waiting_list["days waited"].fillna(0), 0, np.inf)
+
+        pc = PriorityCalculator([])
+        self.historic_waiting_list.loc[:, ["min_wait", "max_wait"]] = (
+            pc.calculate_min_and_max_wait_times(self.historic_waiting_list)
         )
 
+        self.current_waiting_list["ApptBookDate"] = pd.to_datetime(self.current_waiting_list["ApptBookDate"])
+        self.current_waiting_list["sim_day_appt_due"] = (datetime.datetime.now() - self.current_waiting_list["ApptBookDate"]).dt.days
+
+        self.historic_waiting_list["census"] = pd.to_datetime(self.historic_waiting_list["census"])
+        self.historic_waiting_list["ApptBookDate"] = pd.to_datetime(self.historic_waiting_list["ApptBookDate"])
+        self.historic_waiting_list["sim_day_appt_due"] = (self.historic_waiting_list["census"] - self.historic_waiting_list["ApptBookDate"]).dt.days
+
+    def _num_new_refs_hack(self, df):
+        num_new_refs_df = df[(df["type"] == "additions") & (df["appointment_type"] == "first") & (df["treatment_function_code"] == self.tfc)]
+        refs_divided, refs_remainder = divmod(num_new_refs_df["count"], 7)
+
+        num_new_refs = num_new_refs_df[["census", "count"]].set_index("census")
+        num_new_refs.index = pd.to_datetime(num_new_refs.index)
+
+        num_new_refs.loc[:, "count"] = refs_divided
+        num_new_refs = num_new_refs.asfreq('d').ffill()
+
+        num_new_refs.loc[num_new_refs.index.dayofweek == 6, "count"] += refs_remainder.values
+        return num_new_refs.reset_index().rename({"census": "dst", "count":"refs"}, axis=1)
+
+    def _op_clinic_slots(self, df):
+        clinic_slots = df[(df["type"] == "removals") & (df["treatment_function_code"] == self.tfc)].pivot_table(columns="appointment_type", values="count", index="census")
+
+        clinic_slots.index = pd.to_datetime(clinic_slots.index)
+
+        clinic_slots_divided, clinic_slots_remainder = divmod(clinic_slots, 7)
+        clinic_slots_divided = clinic_slots_divided.asfreq('d').ffill()
+
+        clinic_slots_divided.loc[clinic_slots_divided.index.dayofweek == 6, :] += clinic_slots_remainder.values
+
+
+        clinic_slots_divided = clinic_slots_divided.reset_index().rename({"census":"SessionDate"}, axis=1)
+        clinic_slots_divided["unknown"] = 0
+        clinic_slots_divided["Total_slots"] = clinic_slots_divided[["first", "followup"]].sum(axis=1)
+
+        return clinic_slots_divided
+
+
+    def _run_sql(self, filename):
+            return pd.read_sql(
+                open(f"{self.path_to_sql_queries}/{filename}", "r").read().format(site=self.site, tfc=self.tfc),
+                self.engine,
+            )
+
     # TODO: add in a pickler?
+
+
+class OPNewPatient(NewPatients):
+    def __init__(self,
+                 historic_num_refs: pd.Series,
+                 historic_data: pd.DataFrame,
+                 forecast_horizon: int,
+                 new_patients_seed: Optional[int] = None,
+                 patient_categoriser_seed: Optional[int] = None):
+        super().__init__(historic_num_refs, historic_data, forecast_horizon, new_patients_seed, patient_categoriser_seed)
+
+    def generate_new_patients(self, day_number: int) -> pd.DataFrame:
+        """
+        Generate new patients for a given day number based on forecasted category ratios.
+
+        Args:
+            day_number (int): The day number for which new patients should be generated.
+
+        Returns:
+            pd.DataFrame: A dataframe containing the data of newly generated patients for the given day.
+
+        Raises:
+            IndexError: If the day_number exceeds the forecast horizon.
+        """
+        if day_number > self.forecast_horizon:
+            raise IndexError(
+                f"The day number of {day_number} exceeds the original forecast horizon of {self.forecast_horizon}."
+            )
+
+        if day_number % 15 == 0:
+            print(f"{day_number} Reached")
+
+        ratios = self.category_ratios.iloc[day_number]["cat"]
+
+        patient_indices = [
+            self.rng.choice(
+                self.historic_data[
+                    (self.historic_data[self.category_columns] == keys).all(axis=1)
+                ].index,
+                val,
+            )
+            for keys, val in ratios.items()
+        ]
+
+        if len(patient_indices) == 0:
+            df = pd.DataFrame(columns=self.historic_data.columns)
+        else:
+            df = self.historic_data.iloc[np.concatenate(patient_indices)].copy()
+            df.loc[:, "days waited"] = 0
+            df["sim_day_appt_due"] += day_number
+            # df["sim_day_appt_due"] = np.nan
+
+        return df
+
