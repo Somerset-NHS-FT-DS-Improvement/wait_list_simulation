@@ -71,8 +71,6 @@ class OutpatientResourceMatcher:
 
         return indices, fu_df
 
-
     def _update_metrics(self, day_num, num_appts):
         self.unutilised_appts[day_num] = num_appts
         self.borrowed_capacities[day_num] = self.borrowed_capacity.copy()
-

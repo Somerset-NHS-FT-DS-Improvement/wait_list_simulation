@@ -294,3 +294,4 @@ class OPNewPatient(NewPatients):
             # df["sim_day_appt_due"] = np.nan
 
         return df
+

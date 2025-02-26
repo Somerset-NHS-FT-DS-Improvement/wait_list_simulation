@@ -4,12 +4,16 @@ import holidays
 import numpy as np
 import pandas as pd
 from sktime.forecasting.statsforecast import StatsForecastAutoARIMA
+from sktime.forecasting.fbprophet import Prophet
 
 warnings.filterwarnings("ignore")
 
 
 class Forecaster:
-    def __init__(self, data_in, fh, model=StatsForecastAutoARIMA(sp=7)):
+    def __init__(self, data_in, fh, model=Prophet(growth="flat", 
+                                                  changepoint_range=1, 
+                                                  yearly_seasonality=True, 
+                                                  weekly_seasonality=True)):
         """
         A forecasting class for predicting referrals.
 
@@ -21,7 +25,7 @@ class Forecaster:
             fh (int): Forecast horizon, representing the number of future periods (in days)
                       for which predictions will be generated.
             model (sktime object, optional): The forecasting model to be used. Defaults to
-                                             StatsForecastAutoARIMA with a seasonal period (sp) of 7.
+                                             Facebook Prophet with flat trend.
 
         Attributes:
             data (pd.DataFrame): The transformed data formatted in a structure suitable for the
@@ -49,6 +53,7 @@ class Forecaster:
         fcst_range = pd.date_range(
             start=self.data.index.min(), periods=len(self.data) + self.fh, freq="D"
         )
+        
         self._create_holiday_dataframe(date_range=fcst_range)
 
         self.model.fit(y=self.data, X=self.holidays.loc[self.data.index])
